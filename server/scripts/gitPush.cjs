@@ -108,7 +108,8 @@ async function main() {
       remoteRef: 'refs/heads/main',
       force: true,
       onAuth: () => ({
-        username: token,
+        username: 'Dharshan-vs',
+        password: token,
       }),
     });
     console.log('🎉 Push successful! Result:', JSON.stringify(pushResult));
