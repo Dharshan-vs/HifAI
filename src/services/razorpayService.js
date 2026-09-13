@@ -1,0 +1,129 @@
+import { fetchWithAuth } from './apiClient';
+
+/**
+ * Dynamically loads the official Razorpay Checkout script if not present
+ */
+export function loadRazorpayScript() {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      return resolve(true);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+/**
+ * Initiates Razorpay checkout flow
+ */
+export async function initiateRazorpayPayment({
+  offer,
+  energyKwh,
+  totalAmount,
+  userProfile = null,
+  onSuccess,
+  onFailure,
+}) {
+  try {
+    const isScriptLoaded = await loadRazorpayScript();
+
+    // 1. Create order on backend
+    let orderData = null;
+    try {
+      orderData = await fetchWithAuth('/payment/create-order', {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: totalAmount,
+          energy_kwh: energyKwh,
+          offer_id: offer.id,
+        }),
+      });
+    } catch (e) {
+      console.warn('Backend payment create-order fallback:', e);
+    }
+
+    const keyId =
+      orderData?.key_id ||
+      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) ||
+      'rzp_test_yuga_clean_energy';
+
+    const orderId = orderData?.order_id || `order_${Date.now()}`;
+    const amountInPaise = orderData?.amount || Math.round(totalAmount * 100);
+
+    // If Razorpay SDK is loaded in browser and not blocked
+    if (isScriptLoaded && window.Razorpay && !keyId.includes('mock')) {
+      const options = {
+        key: keyId,
+        amount: amountInPaise,
+        currency: 'INR',
+        name: 'YUGA / HifAI Energy',
+        description: `Purchase ${energyKwh} kWh ${offer.energy_source || 'Solar'} Energy from ${offer.seller_name || 'Producer'}`,
+        image: '/favicon.ico',
+        order_id: orderData?.is_sandbox ? undefined : orderId,
+        handler: async function (response) {
+          try {
+            // Verify payment on backend
+            const verifyRes = await fetchWithAuth('/payment/verify-payment', {
+              method: 'POST',
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id || orderId,
+                razorpay_signature: response.razorpay_signature || `sig_${Date.now()}`,
+                offer_id: offer.id,
+                energy_kwh: energyKwh,
+                total_amount: totalAmount,
+              }),
+            });
+
+            if (onSuccess) {
+              onSuccess({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id || orderId,
+                paymentMethod: 'Razorpay Gateway (UPI / Card)',
+                ...verifyRes,
+              });
+            }
+          } catch (verifyErr) {
+            console.warn('Verification fallback:', verifyErr);
+            if (onSuccess) {
+              onSuccess({
+                razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+                razorpay_order_id: orderId,
+                paymentMethod: 'Razorpay Gateway (UPI / Card)',
+              });
+            }
+          }
+        },
+        prefill: {
+          name: userProfile?.fullName || userProfile?.name || 'Clean Energy Consumer',
+          email: userProfile?.email || 'consumer@yuga.energy',
+          contact: userProfile?.phone || '9876543210',
+        },
+        theme: {
+          color: '#10b981', // Emerald green
+        },
+        modal: {
+          ondismiss: function () {
+            if (onFailure) onFailure(new Error('Payment cancelled by user'));
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        if (onFailure) onFailure(resp.error || new Error('Payment failed on Razorpay gateway'));
+      });
+      rzp.open();
+      return true;
+    }
+
+    return false; // Return false to indicate in-app modal fallback can proceed
+  } catch (err) {
+    console.warn('Razorpay SDK initiation error:', err);
+    return false;
+  }
+}

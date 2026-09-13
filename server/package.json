@@ -1,0 +1,18 @@
+{
+  "name": "yuga-backend",
+  "version": "1.0.0",
+  "description": "Node.js + Express + PostgreSQL + Firebase Admin backend for YUGA / HifAI",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.1",
+    "pg": "^8.13.1"
+  }
+}
