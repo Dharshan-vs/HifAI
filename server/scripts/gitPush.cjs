@@ -44,7 +44,7 @@ async function main() {
   console.log('📦 Working Directory:', ROOT_DIR);
 
   // 1. Init repo if not exists
-  await git.init({ fs, dir: ROOT_DIR, defaultBranch: 'main' });
+  await git.init({ fs, dir: ROOT_DIR });
   console.log('✅ Git repository initialized.');
 
   // 2. Add remote origin
@@ -71,35 +71,49 @@ async function main() {
   console.log('✅ All project files staged.');
 
   // 4. Commit
-  const sha = await git.commit({
-    fs,
-    dir: ROOT_DIR,
-    author: {
-      name: 'Dharshan-vs',
-      email: 'dharshan@yuga.energy',
-    },
-    message: 'Initial commit: HifAI P2P Renewable Energy Trading Platform with PostgreSQL, Razorpay, and Blockchain Ledger',
-  });
-  console.log('✅ Commit created with SHA:', sha);
+  let sha;
+  try {
+    sha = await git.commit({
+      fs,
+      dir: ROOT_DIR,
+      author: {
+        name: 'Dharshan-vs',
+        email: 'dharshan@yuga.energy',
+      },
+      message: 'Initial commit: HifAI P2P Renewable Energy Trading Platform with PostgreSQL, Razorpay, and Blockchain Ledger',
+    });
+    console.log('✅ Commit created with SHA:', sha);
+  } catch (e) {
+    console.log('ℹ️ Commit notice:', e.message);
+  }
 
-  // 5. Check if GitHub Token / Credentials passed in env or args
+  // 5. Ensure branch 'main' exists
+  try {
+    await git.branch({ fs, dir: ROOT_DIR, ref: 'main', checkout: true });
+    console.log('✅ Switched to branch main');
+  } catch (e) {
+    console.log('ℹ️ Branch notice:', e.message);
+  }
+
+  // 6. Check if GitHub Token / Credentials passed in env or args
   const token = process.env.GITHUB_TOKEN || process.argv[2];
   if (token) {
-    console.log('🚀 Pushing to https://github.com/Dharshan-vs/HifAI.git ...');
+    console.log('🚀 Pushing branch main to https://github.com/Dharshan-vs/HifAI.git ...');
     const pushResult = await git.push({
       fs,
       http,
       dir: ROOT_DIR,
       remote: 'origin',
       ref: 'main',
+      remoteRef: 'refs/heads/main',
       force: true,
       onAuth: () => ({
         username: token,
       }),
     });
-    console.log('🎉 Push successful!', JSON.stringify(pushResult));
+    console.log('🎉 Push successful! Result:', JSON.stringify(pushResult));
   } else {
-    console.log('\n💡 Local Git Repository is fully initialized and committed!');
+    console.log('\n💡 Local Git Repository is fully initialized and committed on main!');
     console.log('   To push to GitHub, run:');
     console.log('   node server/scripts/gitPush.cjs <YOUR_GITHUB_PERSONAL_ACCESS_TOKEN>');
   }
