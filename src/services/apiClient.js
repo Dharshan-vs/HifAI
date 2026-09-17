@@ -1,6 +1,8 @@
 import { auth } from '../firebase/config.js';
 
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:5000/api';
+const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
 
 export async function fetchWithAuth(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;

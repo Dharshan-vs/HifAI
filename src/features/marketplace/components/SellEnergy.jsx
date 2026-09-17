@@ -6,7 +6,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '../../../components/co
 import Input from '../../../components/common/Input';
 import Button from '../../../components/common/Button';
 import Modal from '../../../components/common/Modal';
-import { createEnergyOffer, fetchProducerEnergyQuota, saveUserBatteryCapacity } from '../../../services/marketplaceService';
+import { createEnergyOffer, fetchProducerEnergyQuota, saveUserBatteryCapacity, deleteEnergyOffer } from '../../../services/marketplaceService';
 import { fetchEnergySystems, addEnergySystem } from '../../../services/systemsService';
 import { fetchLiveWeatherData, getBestTimeToSellRecommendation } from '../../../services/predictionService';
 import LocationMapPicker from '../../../components/common/LocationMapPicker';
@@ -102,6 +102,16 @@ export default function SellEnergy({ onOfferCreated }) {
       toast.error('Failed to register solar system');
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const handleCancelOfferInSell = async (offerId, kwh) => {
+    try {
+      await deleteEnergyOffer(offerId);
+      toast.success(`Offer #${offerId} withdrawn! ${kwh} kWh restored to available battery quota.`);
+      loadSystems();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to cancel offer');
     }
   };
 
@@ -260,11 +270,48 @@ export default function SellEnergy({ onOfferCreated }) {
               )}
 
               {energyQuota.remainingPostableKwh <= 0 && (
-                <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded-xl text-[11px] text-amber-200 font-semibold text-center">
-                  ⚠️ All your available battery energy ({energyQuota.currentBatteryBalanceKwh} kWh) is currently listed in the marketplace! Wait for buyers or modify existing listings.
+                <div className="p-2.5 bg-amber-500/20 border border-amber-500/30 rounded-xl text-[11px] text-amber-200 font-semibold text-center space-y-1">
+                  <p>⚠️ All your stored battery energy ({energyQuota.currentBatteryBalanceKwh} kWh) is currently listed in active marketplace offers!</p>
+                  <p className="text-[10px] text-slate-300 font-normal">Withdraw any active listing below to reclaim its power back into your available quota.</p>
                 </div>
               )}
             </div>
+
+            {/* Active Marketplace Listings Widget with Withdraw action */}
+            {energyQuota.activeOffers && energyQuota.activeOffers.length > 0 && (
+              <div className="bg-amber-500/5 border border-amber-500/30 rounded-2xl p-3.5 mb-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-navy flex items-center gap-1.5">
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Your Active Marketplace Listings ({energyQuota.activeOffers.length})</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-md">
+                    {energyQuota.activeListedKwh} kWh Reserved
+                  </span>
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {energyQuota.activeOffers.map((o) => {
+                    const kwh = parseFloat(o.remaining_kwh ?? o.energy_kwh) || 0;
+                    return (
+                      <div key={o.id} className="flex items-center justify-between p-2.5 bg-surface rounded-xl border border-border text-xs">
+                        <div>
+                          <span className="font-bold text-navy">{o.id}: </span>
+                          <span className="font-mono font-extrabold text-emerald-600">{kwh.toFixed(1)} kWh</span>
+                          <span className="text-text-secondary text-[11px]"> @ ₹{parseFloat(o.price_per_kwh).toFixed(2)}/kWh</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelOfferInSell(o.id, kwh)}
+                          className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 rounded-lg text-[11px] font-bold transition-all border border-rose-500/20"
+                        >
+                          Withdraw &amp; Reclaim
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* AI Best Time to Sell Recommendation Widget */}
             {bestSellRec && (

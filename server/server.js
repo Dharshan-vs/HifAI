@@ -71,4 +71,10 @@ async function startServer() {
   });
 }
 
-startServer();
+// Start standalone server if run directly
+if (process.env.VERCEL !== '1') {
+  startServer();
+}
+
+export { app, startServer };
+export default app;

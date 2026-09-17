@@ -25,6 +25,7 @@ import {
   fetchProducerEnergyQuota,
   getUserBatteryCapacity,
   saveUserBatteryCapacity,
+  deleteEnergyOffer,
 } from '../../../services/marketplaceService';
 import { fetchWalletSummary } from '../../../services/walletService';
 import { fetchEnergySystems, addEnergySystem } from '../../../services/systemsService';
@@ -94,6 +95,16 @@ export default function ProducerDashboard({ userProfile }) {
     toast.success(`Battery capacity updated to ${val.toFixed(1)} kWh!`);
     setShowBatteryModal(false);
     loadProducerData();
+  };
+
+  const handleCancelOfferInDashboard = async (offerId, kwh) => {
+    try {
+      await deleteEnergyOffer(offerId);
+      toast.success(`Offer #${offerId} withdrawn! ${kwh} kWh restored to available battery quota.`);
+      loadProducerData();
+    } catch (err) {
+      toast.error(err?.message || 'Failed to cancel offer');
+    }
   };
 
   const handlePostSellOffer = async () => {
@@ -360,7 +371,44 @@ export default function ProducerDashboard({ userProfile }) {
                     <span className="font-mono font-bold">{energyQuota.activeListedKwh} kWh</span>
                   </div>
                 )}
+                {energyQuota.remainingPostableKwh <= 0 && (
+                  <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded-lg text-[10px] text-amber-200 text-center font-semibold">
+                    ⚠️ 100% of stored battery is currently listed in active marketplace offers! Withdraw a listing below to free up quota.
+                  </div>
+                )}
               </div>
+
+              {/* Active Listings Quick Management */}
+              {energyQuota.activeOffers && energyQuota.activeOffers.length > 0 && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center text-xs font-bold text-navy">
+                    <span>Active Listings ({energyQuota.activeOffers.length})</span>
+                    <span className="text-[10px] font-mono text-amber-700 bg-amber-500/20 px-1.5 py-0.5 rounded">
+                      {energyQuota.activeListedKwh} kWh
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {energyQuota.activeOffers.map((o) => {
+                      const kwh = parseFloat(o.remaining_kwh ?? o.energy_kwh) || 0;
+                      return (
+                        <div key={o.id} className="p-2 bg-surface rounded-lg border border-border text-[11px] flex items-center justify-between">
+                          <div>
+                            <span className="font-bold text-navy">{o.id}</span>
+                            <span className="text-emerald-600 font-bold block">{kwh.toFixed(1)} kWh @ ₹{parseFloat(o.price_per_kwh).toFixed(2)}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelOfferInDashboard(o.id, kwh)}
+                            className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 rounded text-[10px] font-bold border border-rose-500/20"
+                          >
+                            Withdraw
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div>

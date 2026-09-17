@@ -505,24 +505,31 @@ export async function fetchProducerEnergyQuota(userId = 'guest', userName = '') 
     fetchEnergyOffers(),
   ]);
 
-  // Total energy already successfully sold by this producer
+  // Total energy already successfully sold and discharged by this producer
   const totalSoldKwh = (txs || []).reduce((acc, tx) => acc + (parseFloat(tx.energyAmount) || 0), 0);
 
-  // User-specific total battery storage capacity (fixed constant, does NOT inflate on sale)
+  // User-specific total battery storage capacity (configured capacity, defaults to 150.0 kWh)
   const totalCapacityKwh = getUserBatteryCapacity(userId);
 
   // Physical Battery Balance remaining in the battery (Total Capacity - Sold Power)
   const currentBatteryBalanceKwh = Math.max(0, parseFloat((totalCapacityKwh - totalSoldKwh).toFixed(2)));
 
   // Active listings currently posted by this producer in the marketplace (waiting for buyer)
-  const activeProducerOffers = (offers || []).filter((o) => {
+  const isOwnerOffer = (o) => {
     if (isOfferCompletedOrDepleted(o)) return false;
-    if (o.status && o.status !== 'active') return false;
-    if (userId && userId !== 'guest' && o.seller_id === userId) return true;
-    if (userName && o.seller_name === userName) return true;
-    if (o.seller_id === 'PROD-CURRENT' || o.seller_name === 'Community Solar Producer' || o.seller_role === 'producer') return true;
+    if (o.status && o.status.toLowerCase() !== 'active') return false;
+    if (userId && userId !== 'guest') {
+      if (String(o.seller_id) === String(userId)) return true;
+      if (o.seller_uid && String(o.seller_uid) === String(userId)) return true;
+      if (userName && o.seller_name && o.seller_name.trim().toLowerCase() === userName.trim().toLowerCase()) return true;
+      return false;
+    }
+    // For guest/demo producer:
+    if (o.seller_id === 'PROD-CURRENT' || o.seller_id === 'guest' || o.seller_name === 'Community Solar Producer') return true;
     return false;
-  });
+  };
+
+  const activeProducerOffers = (offers || []).filter(isOwnerOffer);
 
   const activeListedKwh = activeProducerOffers.reduce(
     (acc, o) => acc + (parseFloat(o.remaining_kwh ?? o.energy_kwh) || 0),
@@ -541,6 +548,66 @@ export async function fetchProducerEnergyQuota(userId = 'guest', userName = '') 
     activeOffersCount: activeProducerOffers.length,
     activeOffers: activeProducerOffers,
   };
+}
+
+/**
+ * Cancels or withdraws an active energy offer and restores the energy to the producer's unlisted battery quota.
+ */
+export async function deleteEnergyOffer(offerId) {
+  try {
+    const res = await fetchWithAuth(`/energy/offers/${offerId}`, {
+      method: 'DELETE',
+    });
+
+    const currentLocal = getLocalOffers();
+    const strId = String(offerId).toLowerCase();
+    const numId = strId.replace(/\D/g, '');
+    const updatedLocal = currentLocal.filter((o) => {
+      const oStr = String(o.id).toLowerCase();
+      const oNum = oStr.replace(/\D/g, '');
+      return oStr !== strId && (!numId || oNum !== numId);
+    });
+    saveLocalOffers(updatedLocal);
+    markOfferAsCompleted(offerId);
+
+    recordClientAuditLog({
+      transaction_id: `CANCEL-${offerId}`,
+      actor: 'Producer',
+      action: 'OFFER_CANCELLED',
+      transaction_type: 'offer_cancellation',
+      amount: 0,
+      status: 'cancelled',
+      description: `Active energy offer #${offerId} withdrawn. Energy restored to unlisted battery storage reserve.`,
+      metadata: { offer_id: offerId },
+    });
+
+    return res || { success: true };
+  } catch (error) {
+    console.warn('Backend delete offer error, updating local cache:', error);
+    const currentLocal = getLocalOffers();
+    const strId = String(offerId).toLowerCase();
+    const numId = strId.replace(/\D/g, '');
+    const updatedLocal = currentLocal.filter((o) => {
+      const oStr = String(o.id).toLowerCase();
+      const oNum = oStr.replace(/\D/g, '');
+      return oStr !== strId && (!numId || oNum !== numId);
+    });
+    saveLocalOffers(updatedLocal);
+    markOfferAsCompleted(offerId);
+
+    recordClientAuditLog({
+      transaction_id: `CANCEL-${offerId}`,
+      actor: 'Producer',
+      action: 'OFFER_CANCELLED',
+      transaction_type: 'offer_cancellation',
+      amount: 0,
+      status: 'cancelled',
+      description: `Active energy offer #${offerId} withdrawn. Energy restored to unlisted battery storage reserve.`,
+      metadata: { offer_id: offerId },
+    });
+
+    return { success: true, message: `Offer #${offerId} withdrawn successfully` };
+  }
 }
 
 export async function createEnergyOffer(offerData) {
@@ -565,6 +632,7 @@ export async function createEnergyOffer(offerData) {
   const formattedOffer = {
     id: `OFFER-P2P-${Math.floor(100000 + Math.random() * 900000)}`,
     seller_id: offerData.seller_id || 'PROD-CURRENT',
+    seller_uid: offerData.seller_id || 'PROD-CURRENT',
     seller_name: offerData.seller_name || 'Community Solar Producer',
     seller_location: sellerLocation,
     seller_city: activeCity,

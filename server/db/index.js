@@ -596,7 +596,10 @@ function handleFallbackQuery(text, params) {
     const rawId = params[params.length - 1];
     const offer = memoryStore.energy_offers.find((o) => matchOfferId(o, rawId));
     if (offer) {
-      if (normalized.includes('remaining_kwh = remaining_kwh +')) {
+      if (normalized.includes("status = 'cancelled'")) {
+        offer.status = 'cancelled';
+        offer.remaining_kwh = 0;
+      } else if (normalized.includes('remaining_kwh = remaining_kwh +')) {
         const addedKwh = parseFloat(params[0]);
         offer.remaining_kwh = parseFloat((offer.remaining_kwh + addedKwh).toFixed(2));
         offer.status = 'active';
@@ -606,6 +609,17 @@ function handleFallbackQuery(text, params) {
       }
       offer.updated_at = new Date().toISOString();
       return { rows: [offer] };
+    }
+    return { rows: [] };
+  }
+
+  // DELETE FROM energy_offers
+  if (normalized.includes('DELETE FROM energy_offers')) {
+    const rawId = params[0];
+    const idx = memoryStore.energy_offers.findIndex((o) => matchOfferId(o, rawId));
+    if (idx !== -1) {
+      const removed = memoryStore.energy_offers.splice(idx, 1);
+      return { rows: removed };
     }
     return { rows: [] };
   }

@@ -220,6 +220,57 @@ router.post('/offers', verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/energy/offers/:id - Cancel/Withdraw active energy offer
+router.delete('/offers/:id', verifyToken, async (req, res) => {
+  try {
+    const offerId = req.params.id;
+    const seller_id = req.user.id;
+
+    // Check if offer exists
+    const offerRes = await query('SELECT * FROM energy_offers WHERE id = $1', [offerId]);
+    if (offerRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Energy offer not found' });
+    }
+
+    const offer = offerRes.rows[0];
+
+    // Verify ownership
+    if (offer.seller_id !== seller_id && String(offer.seller_id) !== String(seller_id)) {
+      return res.status(403).json({ error: 'You are not authorized to cancel this energy offer' });
+    }
+
+    // Set status to cancelled or delete
+    await query(
+      `UPDATE energy_offers
+       SET status = 'cancelled', remaining_kwh = 0, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [offerId]
+    );
+
+    // Audit log
+    await createAuditLog({
+      transaction_id: `OFFER-${offerId}`,
+      user_id: String(seller_id),
+      actor: req.user?.name ? `${req.user.name} (Producer)` : `Producer #${seller_id}`,
+      action: 'OFFER_CANCELLED',
+      transaction_type: 'offer_cancellation',
+      amount: parseFloat((parseFloat(offer.remaining_kwh || 0) * parseFloat(offer.price_per_kwh || 0)).toFixed(2)),
+      status: 'cancelled',
+      description: `Cancelled active offer #${offerId} for ${offer.remaining_kwh} kWh. Energy restored to unlisted battery storage.`,
+      metadata: offer,
+    });
+
+    res.json({
+      success: true,
+      message: `Energy offer #${offerId} cancelled successfully. Energy restored to your battery.`,
+      reclaimed_kwh: parseFloat(offer.remaining_kwh || 0),
+    });
+  } catch (error) {
+    console.error('Error cancelling energy offer:', error);
+    res.status(500).json({ error: 'Failed to cancel energy offer' });
+  }
+});
+
 // Haversine distance calculator in km
 function calculateDistanceKm(lat1, lon1, lat2, lon2) {
   if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) return 0.6;
