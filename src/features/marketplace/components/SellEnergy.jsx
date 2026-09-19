@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Sun, Plus, Clock, DollarSign, Zap, ShieldAlert, Cpu, CheckCircle2, X, Battery, Sparkles, CloudSun, MapPin, Settings } from 'lucide-react';
+import { Sun, Plus, Clock, DollarSign, Zap, ShieldAlert, Cpu, CheckCircle2, X, Battery, Sparkles, CloudSun, MapPin, Settings, Gauge } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Card, { CardHeader, CardTitle, CardContent } from '../../../components/common/Card';
 import Input from '../../../components/common/Input';
@@ -9,13 +10,15 @@ import Modal from '../../../components/common/Modal';
 import { createEnergyOffer, fetchProducerEnergyQuota, saveUserBatteryCapacity, deleteEnergyOffer } from '../../../services/marketplaceService';
 import { fetchEnergySystems, addEnergySystem } from '../../../services/systemsService';
 import { fetchLiveWeatherData, getBestTimeToSellRecommendation } from '../../../services/predictionService';
-import LocationMapPicker from '../../../components/common/LocationMapPicker';
+import { fetchSmartMeters } from '../../../services/smartMeterService';
 import { useAuth } from '../../../context/AuthContext';
+import { ROUTES } from '../../../utils/constants';
 
 export default function SellEnergy({ onOfferCreated }) {
   const { user, userProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [registeredSystems, setRegisteredSystems] = useState([]);
+  const [smartMeters, setSmartMeters] = useState([]);
   const [checkingSystems, setCheckingSystems] = useState(true);
   const [showRegModal, setShowRegModal] = useState(false);
   const [showBatteryModal, setShowBatteryModal] = useState(false);
@@ -45,16 +48,28 @@ export default function SellEnergy({ onOfferCreated }) {
 
   const loadSystems = useCallback(async () => {
     setCheckingSystems(true);
-    const [list, wData, quota] = await Promise.all([
+    const [list, wData, quota, metersList] = await Promise.all([
       fetchEnergySystems(user?.uid || 'guest'),
       fetchLiveWeatherData(),
       fetchProducerEnergyQuota(user?.uid, userProfile?.fullName),
+      fetchSmartMeters(user?.uid || 'guest'),
     ]);
     setRegisteredSystems(list || []);
+    setSmartMeters(metersList || []);
     setEnergyQuota(quota);
     setCustomBatteryCapacity(String(quota.totalCapacityKwh || 150.0));
     setRemainingBatteryKwh(quota.remainingPostableKwh);
     setBestSellRec(getBestTimeToSellRecommendation(wData, quota.remainingPostableKwh));
+
+    if (metersList && metersList.length > 0) {
+      const activeMeter = metersList[0];
+      setProducerMapLoc({
+        address: activeMeter.location || 'Main Road, Dindigul, Tamil Nadu',
+        lat: parseFloat(activeMeter.lat) || 10.3673,
+        lon: parseFloat(activeMeter.lon) || 77.9803,
+      });
+    }
+
     setCheckingSystems(false);
   }, [user?.uid, userProfile?.fullName]);
 
@@ -388,15 +403,56 @@ export default function SellEnergy({ onOfferCreated }) {
                 </div>
               </div>
 
-              {/* Producer Google Maps P2P Location Picker */}
-              <LocationMapPicker
-                label="Producer Solar System Google Maps Location Pin & GPS Coordinates"
-                value={producerMapLoc}
-                onChange={(newLoc) => {
-                  setProducerMapLoc(newLoc);
-                  setValue('sellerLocation', newLoc.address);
-                }}
-              />
+              {/* Producer Pinned Smart Meter Microgrid Location Banner */}
+              {smartMeters.length > 0 ? (
+                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-emerald-500/20 text-emerald-700 rounded-xl">
+                      <MapPin className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-navy text-xs">Registered Smart Meter Location</span>
+                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-800 rounded-md text-[10px] font-mono font-extrabold">
+                          🔒 Pinned &amp; Locked
+                        </span>
+                      </div>
+                      <p className="text-emerald-950 font-bold text-xs mt-0.5">
+                        {smartMeters[0]?.location || producerMapLoc.address}
+                      </p>
+                      <p className="text-[10px] font-mono text-emerald-700">
+                        GPS: {smartMeters[0]?.lat || producerMapLoc.lat}, {smartMeters[0]?.lon || producerMapLoc.lon} • Fixed 1.0 km Microgrid Transfer Radius
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to={ROUTES.DEVICES_SMART_METER}
+                    className="px-3 py-1.5 bg-surface text-emerald-700 hover:text-emerald-800 border border-emerald-500/30 rounded-xl text-xs font-bold text-center shrink-0 transition-colors shadow-xs"
+                  >
+                    View Meter Setup →
+                  </Link>
+                </div>
+              ) : (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-amber-500/20 text-amber-600 rounded-xl">
+                      <Gauge className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-navy">Household Smart Meter Location Required</span>
+                      <p className="text-text-secondary text-[11px]">
+                        Please register your smart meter once to pin your physical location before posting P2P offers.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to={ROUTES.DEVICES_SMART_METER}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs text-center shrink-0 shadow-sm"
+                  >
+                    + Register Smart Meter
+                  </Link>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Energy Source */}

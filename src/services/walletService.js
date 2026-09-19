@@ -33,15 +33,10 @@ const LOCAL_PAYMENTS_KEY = 'hifai_registered_payments';
 
 export function getLocalWallet(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_WALLET_KEY : `${LOCAL_WALLET_KEY}_${userId}`;
+    const key = `${LOCAL_WALLET_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       return JSON.parse(raw);
-    }
-    // Check fallback global store
-    const globalRaw = localStorage.getItem(LOCAL_WALLET_KEY);
-    if (globalRaw) {
-      return JSON.parse(globalRaw);
     }
     return { id: userId, ...INITIAL_WALLET };
   } catch {
@@ -51,9 +46,8 @@ export function getLocalWallet(userId = 'guest') {
 
 export function saveLocalWallet(userId = 'guest', wallet) {
   try {
-    const key = userId === 'guest' ? LOCAL_WALLET_KEY : `${LOCAL_WALLET_KEY}_${userId}`;
+    const key = `${LOCAL_WALLET_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(wallet));
-    localStorage.setItem(LOCAL_WALLET_KEY, JSON.stringify(wallet));
   } catch (e) {
     console.error('LocalStorage save wallet error:', e);
   }
@@ -61,14 +55,10 @@ export function saveLocalWallet(userId = 'guest', wallet) {
 
 function getLocalPayments(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_PAYMENTS_KEY : `${LOCAL_PAYMENTS_KEY}_${userId}`;
+    const key = `${LOCAL_PAYMENTS_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       return JSON.parse(raw);
-    }
-    const globalRaw = localStorage.getItem(LOCAL_PAYMENTS_KEY);
-    if (globalRaw) {
-      return JSON.parse(globalRaw);
     }
     return INITIAL_PAYMENTS.map((p) => ({ ...p, userId }));
   } catch {
@@ -78,9 +68,8 @@ function getLocalPayments(userId = 'guest') {
 
 function saveLocalPayments(userId = 'guest', payments) {
   try {
-    const key = userId === 'guest' ? LOCAL_PAYMENTS_KEY : `${LOCAL_PAYMENTS_KEY}_${userId}`;
+    const key = `${LOCAL_PAYMENTS_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(payments));
-    localStorage.setItem(LOCAL_PAYMENTS_KEY, JSON.stringify(payments));
   } catch (e) {
     console.error('LocalStorage save payments error:', e);
   }

@@ -6,58 +6,22 @@ const LOCAL_SYSTEMS_KEY = 'hifai_registered_solar_systems';
 
 function getLocalSystems(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_SYSTEMS_KEY : `${LOCAL_SYSTEMS_KEY}_${userId}`;
+    const key = `${LOCAL_SYSTEMS_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-
-    const fallbackKeys = [
-      LOCAL_SYSTEMS_KEY,
-      `${LOCAL_SYSTEMS_KEY}_guest`,
-      `${LOCAL_SYSTEMS_KEY}_google_demo_user`,
-      `${LOCAL_SYSTEMS_KEY}_demo-user-001`,
-    ];
-
-    for (const fbKey of fallbackKeys) {
-      const fbRaw = localStorage.getItem(fbKey);
-      if (fbRaw) {
-        const parsed = JSON.parse(fbRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          saveLocalSystems(userId, parsed);
-          return parsed;
-        }
-      }
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(LOCAL_SYSTEMS_KEY)) {
-        const val = localStorage.getItem(storageKey);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              saveLocalSystems(userId, parsed);
-              return parsed;
-            }
-          } catch {}
-        }
-      }
-    }
-
-    return INITIAL_SYSTEMS.map((s) => ({ ...s, userId }));
+    return [];
   } catch {
-    return INITIAL_SYSTEMS.map((s) => ({ ...s, userId }));
+    return [];
   }
 }
 
 function saveLocalSystems(userId = 'guest', list) {
   try {
-    const key = userId === 'guest' ? LOCAL_SYSTEMS_KEY : `${LOCAL_SYSTEMS_KEY}_${userId}`;
+    const key = `${LOCAL_SYSTEMS_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(list));
-    localStorage.setItem(LOCAL_SYSTEMS_KEY, JSON.stringify(list));
   } catch (e) {
     console.error('LocalStorage save systems error:', e);
   }

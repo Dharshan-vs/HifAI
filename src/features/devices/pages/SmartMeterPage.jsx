@@ -172,26 +172,26 @@ export default function SmartMeterPage() {
                 <Gauge className="w-7 h-7" />
               </div>
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-base font-extrabold text-navy font-heading">{activeMeter.name}</h3>
                   <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-600 rounded-full text-[10px] font-extrabold uppercase border border-emerald-500/20">
                     Physical Meter Connected
                   </span>
-                  <span className="px-2.5 py-0.5 bg-cyan-500/10 text-cyan-700 rounded-full text-[10px] font-mono font-bold border border-cyan-500/20">
-                    📍 Lat: {activeMeter.lat || 10.3673}, Lon: {activeMeter.lon || 77.9803}
+                  <span className="px-2.5 py-0.5 bg-emerald-500/15 text-emerald-800 rounded-full text-[10px] font-mono font-extrabold border border-emerald-500/30 flex items-center gap-1">
+                    🔒 Location Pinned &amp; Locked ({activeMeter.lat || 10.3673}, {activeMeter.lon || 77.9803})
                   </span>
                 </div>
                 <p className="text-xs text-text-secondary">
-                  Serial No: <strong className="font-mono text-navy">{activeMeter.serialNumber}</strong> • Location: <strong className="text-navy">{activeMeter.location || 'Household Smart Meter Site'}</strong>
+                  Serial No: <strong className="font-mono text-navy">{activeMeter.serialNumber}</strong> • Fixed Site: <strong className="text-navy">{activeMeter.location || 'Household Smart Meter Site'}</strong>
                 </p>
                 <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5 pt-0.5">
-                  <Zap className="w-3.5 h-3.5 text-lime-600" /> Current flow & P2P marketplace energy (&le; 1.0 km) are transferred directly through this smart meter.
+                  <Zap className="w-3.5 h-3.5 text-lime-600" /> Physical installation location permanently pinned once. Microgrid transfer radius (&le; 1.0 km) anchored to this location.
                 </p>
               </div>
             </div>
 
             <Button onClick={handleOpenEditMeter} size="sm" variant="outline" className="shrink-0">
-              <Edit2 className="w-3.5 h-3.5 mr-1 inline" /> Edit Meter & GPS Location
+              <Edit2 className="w-3.5 h-3.5 mr-1 inline" /> Edit Meter Details
             </Button>
           </div>
         </Card>
@@ -203,11 +203,11 @@ export default function SmartMeterPage() {
           <div className="space-y-1">
             <h3 className="text-base font-bold text-navy">No Household Smart Meter Registered</h3>
             <p className="text-xs text-text-secondary max-w-md mx-auto">
-              Please register your household smart meter connection to monitor live line voltage, current draw, and enable P2P solar energy purchases.
+              Please register your household smart meter connection to monitor live line voltage, current draw, and enable P2P solar energy purchases. Location is pinned <strong>only once</strong> upon setup.
             </p>
           </div>
           <Button onClick={handleOpenAddMeter} variant="primary" className="shadow-md">
-            + Register Household Smart Meter Now
+            + Register Smart Meter (1-Time Setup)
           </Button>
         </Card>
       )}

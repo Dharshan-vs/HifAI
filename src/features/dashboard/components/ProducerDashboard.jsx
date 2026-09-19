@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Sun,
@@ -12,6 +13,8 @@ import {
   Battery,
   Settings,
   BatteryCharging,
+  Gauge,
+  MapPin,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Card, { CardHeader, CardTitle, CardContent } from '../../../components/common/Card';
@@ -29,6 +32,8 @@ import {
 } from '../../../services/marketplaceService';
 import { fetchWalletSummary } from '../../../services/walletService';
 import { fetchEnergySystems, addEnergySystem } from '../../../services/systemsService';
+import { fetchSmartMeters } from '../../../services/smartMeterService';
+import { ROUTES } from '../../../utils/constants';
 import EnergyPredictionCard from '../../generation/components/EnergyPredictionCard';
 
 export default function ProducerDashboard({ userProfile }) {
@@ -42,6 +47,7 @@ export default function ProducerDashboard({ userProfile }) {
 
   const [transactions, setTransactions] = useState([]);
   const [wallet, setWallet] = useState(null);
+  const [smartMeter, setSmartMeter] = useState(null);
   const [energyQuota, setEnergyQuota] = useState({
     totalCapacityKwh: 150.0,
     totalSoldKwh: 0,
@@ -55,15 +61,19 @@ export default function ProducerDashboard({ userProfile }) {
   const loadProducerData = useCallback(async () => {
     setLoading(true);
     try {
-      const [txList, walletData, quota] = await Promise.all([
-        fetchUserTransactions(),
+      const [txList, walletData, quota, metersList] = await Promise.all([
+        fetchUserTransactions(userProfile?.uid || 'guest'),
         fetchWalletSummary(userProfile?.uid || 'guest'),
         fetchProducerEnergyQuota(userProfile?.uid, userProfile?.fullName),
+        fetchSmartMeters(userProfile?.uid || 'guest'),
       ]);
       setTransactions(txList);
       setWallet(walletData);
       setEnergyQuota(quota);
       setCustomBatteryCapacity(String(quota.totalCapacityKwh || 150.0));
+      if (metersList && metersList.length > 0) {
+        setSmartMeter(metersList[0]);
+      }
       if (quota.remainingPostableKwh > 0 && sellingAmount > quota.remainingPostableKwh) {
         setSellingAmount(quota.remainingPostableKwh);
       }
@@ -141,16 +151,20 @@ export default function ProducerDashboard({ userProfile }) {
 
     setPostingOffer(true);
     try {
+      const activeLoc = smartMeter?.location || 'Main Road, Dindigul, Tamil Nadu';
+      const activeLat = smartMeter?.lat ? parseFloat(smartMeter.lat) : 10.3673;
+      const activeLon = smartMeter?.lon ? parseFloat(smartMeter.lon) : 77.9803;
+
       await createEnergyOffer({
         energy_kwh: sellingAmount,
         price_per_kwh: tariffRate,
         energy_source: 'Solar',
         seller_id: userProfile?.uid || 'PROD-CURRENT',
         seller_name: userProfile?.fullName || 'Community Solar Producer',
-        seller_location: 'Main Road, Dindigul, Tamil Nadu',
-        seller_city: 'Dindigul',
-        lat: 10.3673,
-        lon: 77.9803,
+        seller_location: activeLoc,
+        seller_city: activeLoc.split(',')[0].trim(),
+        lat: activeLat,
+        lon: activeLon,
       });
       toast.success(`Solar Offer Posted! ${sellingAmount} kWh listed at ₹${tariffRate.toFixed(2)}/kWh in Consumer Marketplace.`);
       loadProducerData();
@@ -191,6 +205,48 @@ export default function ProducerDashboard({ userProfile }) {
                 <Send className="w-4 h-4" /> {postingOffer ? 'Posting...' : 'Post Energy Offer to Marketplace'}
               </button>
             </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Household / Farm Smart Meter Connection & Pinned Location Banner */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <div className="bg-surface border border-emerald-500/30 rounded-2xl p-5 shadow-md relative overflow-hidden bg-gradient-to-r from-surface via-emerald-500/5 to-teal-500/10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shadow-xs">
+                <Gauge className="w-7 h-7 text-emerald-600" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-extrabold text-navy font-heading">
+                    {smartMeter ? smartMeter.name : 'Smart Meter Physical Installation Pin'}
+                  </h3>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase border ${
+                    smartMeter
+                      ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                      : 'bg-amber-500/10 text-amber-700 border-amber-500/30'
+                  }`}>
+                    {smartMeter ? '🔒 Location Pinned & Locked' : '⚠️ Unregistered (1-Time Setup Required)'}
+                  </span>
+                </div>
+                <p className="text-xs text-text-secondary mt-0.5">
+                  {smartMeter ? (
+                    <>
+                      Fixed Node Site: <strong className="text-navy">{smartMeter.location || 'Main Road, Dindigul, Tamil Nadu'}</strong> (GPS: {smartMeter.lat || 10.3673}, {smartMeter.lon || 77.9803})
+                    </>
+                  ) : (
+                    'Pin your smart meter location once in the portal. All marketplace offers will automatically use your fixed location.'
+                  )}
+                </p>
+              </div>
+            </div>
+            <Link
+              to={ROUTES.DEVICES_SMART_METER}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs text-center shrink-0 shadow-sm transition-all"
+            >
+              {smartMeter ? 'Manage Smart Meter ➔' : '+ Register Smart Meter & Pin Location'}
+            </Link>
           </div>
         </div>
       </motion.div>

@@ -219,56 +219,7 @@ export default function LoginPage() {
             Continue with Google
           </Button>
 
-          {/* 1-Click Instant Demo Portals */}
-          <div className="p-3 bg-background border border-primary/20 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                Instant Demo Access (1-Click)
-              </span>
-              <span className="text-[10px] text-text-secondary">No password required</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(USER_ROLES.CONSUMER)}
-                disabled={authLoading}
-                className="py-1.5 px-2 bg-surface hover:bg-emerald-500/10 border border-border hover:border-emerald-500/30 rounded-xl text-xs font-medium text-text-secondary hover:text-emerald-500 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Home className="w-3.5 h-3.5 text-emerald-500" />
-                Consumer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(USER_ROLES.PRODUCER)}
-                disabled={authLoading}
-                className="py-1.5 px-2 bg-surface hover:bg-amber-500/10 border border-border hover:border-amber-500/30 rounded-xl text-xs font-medium text-text-secondary hover:text-amber-500 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                Producer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(USER_ROLES.BUSINESS)}
-                disabled={authLoading}
-                className="py-1.5 px-2 bg-surface hover:bg-cyan-500/10 border border-border hover:border-cyan-500/30 rounded-xl text-xs font-medium text-text-secondary hover:text-cyan-500 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Building2 className="w-3.5 h-3.5 text-cyan-500" />
-                Business
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemoLogin(USER_ROLES.ADMIN)}
-                disabled={authLoading}
-                className="py-1.5 px-2 bg-surface hover:bg-purple-500/10 border border-border hover:border-purple-500/30 rounded-xl text-xs font-medium text-text-secondary hover:text-purple-500 transition-all flex items-center justify-center gap-1.5"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-500" />
-                Admin
-              </button>
-            </div>
-          </div>
-
-          <p className="text-center text-xs text-text-secondary">
+          <p className="text-center text-xs text-text-secondary pt-2">
             Don&apos;t have an account?{' '}
             <Link to={`${ROUTES.SIGNUP}?role=${targetPortal}`} className="font-semibold text-primary hover:text-primary-dark transition-colors">
               Sign up as {targetPortal.toUpperCase()}

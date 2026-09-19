@@ -85,6 +85,8 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
     });
   };
 
+  const isLocationLocked = Boolean(meter && meter.lat && meter.lon);
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/60 backdrop-blur-sm overflow-y-auto">
@@ -101,9 +103,13 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
               </div>
               <div>
                 <h3 className="text-base font-bold text-navy">
-                  {meter ? 'Edit Household Smart Meter Location' : 'Register Household Smart Meter & GPS Location'}
+                  {meter ? 'Household Smart Meter Details' : 'Register Smart Meter (1-Time GPS Pin)'}
                 </h3>
-                <p className="text-xs text-text-secondary">Verify Google Maps location for 1.0 km P2P Microgrid transfer eligibility</p>
+                <p className="text-xs text-text-secondary">
+                  {meter
+                    ? 'Physical Smart Meter location is permanently pinned & locked'
+                    : 'Pin your physical Smart Meter location once for 1.0 km P2P Microgrid transfers'}
+                </p>
               </div>
             </div>
             <button
@@ -113,6 +119,18 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {!meter && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+              <span className="text-sm">⚠️</span>
+              <div>
+                <strong className="block font-bold">1-Time Physical Installation Pin:</strong>
+                <span>
+                  Your household Smart Meter GPS location is pinned <strong>only once</strong> upon registration to permanently anchor your node for 1.0 km microgrid energy transfers.
+                </span>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 text-xs">
             <Input
@@ -131,11 +149,15 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
 
             {/* Google Maps Location & GPS Verification Picker */}
             <LocationMapPicker
-              label="Smart Meter Google Maps Location Pin & GPS Coordinates"
+              label={isLocationLocked ? '🔒 Permanently Pinned Physical Smart Meter Location' : 'Pin Smart Meter Physical Location (1-Time Setup)'}
               value={mapLoc}
+              isLocked={isLocationLocked}
+              readOnly={isLocationLocked}
               onChange={(newLoc) => {
-                setMapLoc(newLoc);
-                setValue('location', newLoc.address);
+                if (!isLocationLocked) {
+                  setMapLoc(newLoc);
+                  setValue('location', newLoc.address);
+                }
               }}
             />
 
@@ -160,7 +182,7 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
                 Cancel
               </button>
               <Button type="submit" loading={loading} variant="primary" className="flex-1">
-                {meter ? 'Save Verified Meter' : 'Register Meter on Google Maps'}
+                {meter ? 'Save Meter Details' : 'Register & Lock Location Pin'}
               </Button>
             </div>
           </form>

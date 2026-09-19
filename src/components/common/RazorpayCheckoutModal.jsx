@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { initiateRazorpayPayment } from '../../services/razorpayService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RazorpayCheckoutModal({
   isOpen,
@@ -30,6 +31,7 @@ export default function RazorpayCheckoutModal({
   distanceKm = 0.4,
   onPaymentSuccess,
 }) {
+  const { userProfile } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState('upi'); // 'upi' | 'card' | 'netbanking' | 'wallet'
   const [upiId, setUpiId] = useState('consumer@okhdfcbank');
   const [cardNumber, setCardNumber] = useState('4532 •••• •••• 8912');
@@ -53,6 +55,7 @@ export default function RazorpayCheckoutModal({
       offer,
       energyKwh,
       totalAmount: totalInr,
+      userProfile,
       onSuccess: (verifiedDetails) => {
         setProcessing(false);
         toast.success(

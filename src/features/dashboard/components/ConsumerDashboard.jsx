@@ -25,11 +25,11 @@ export default function ConsumerDashboard({ userProfile }) {
 
   useEffect(() => {
     async function loadSummary() {
-      const data = await fetchEnergySummary();
+      const data = await fetchEnergySummary(userProfile?.uid || 'guest');
       if (data) setSummary(data);
     }
     loadSummary();
-  }, []);
+  }, [userProfile?.uid]);
 
   const communitySavings = [
     { label: 'Standard Utility Grid Rate', rate: '₹10.50 / kWh', total: '₹0.00' },

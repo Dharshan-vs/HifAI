@@ -9,58 +9,22 @@ const LOCAL_GENERATION_KEY = 'hifai_registered_solar_generation';
 
 function getLocalInverters(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_INVERTERS_KEY : `${LOCAL_INVERTERS_KEY}_${userId}`;
+    const key = `${LOCAL_INVERTERS_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-
-    const fallbackKeys = [
-      LOCAL_INVERTERS_KEY,
-      `${LOCAL_INVERTERS_KEY}_guest`,
-      `${LOCAL_INVERTERS_KEY}_google_demo_user`,
-      `${LOCAL_INVERTERS_KEY}_demo-user-001`,
-    ];
-
-    for (const fbKey of fallbackKeys) {
-      const fbRaw = localStorage.getItem(fbKey);
-      if (fbRaw) {
-        const parsed = JSON.parse(fbRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          saveLocalInverters(userId, parsed);
-          return parsed;
-        }
-      }
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(LOCAL_INVERTERS_KEY)) {
-        const val = localStorage.getItem(storageKey);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              saveLocalInverters(userId, parsed);
-              return parsed;
-            }
-          } catch {}
-        }
-      }
-    }
-
-    return INITIAL_INVERTERS.map((i) => ({ ...i, userId }));
+    return [];
   } catch {
-    return INITIAL_INVERTERS.map((i) => ({ ...i, userId }));
+    return [];
   }
 }
 
 function saveLocalInverters(userId = 'guest', inverters) {
   try {
-    const key = userId === 'guest' ? LOCAL_INVERTERS_KEY : `${LOCAL_INVERTERS_KEY}_${userId}`;
+    const key = `${LOCAL_INVERTERS_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(inverters));
-    localStorage.setItem(LOCAL_INVERTERS_KEY, JSON.stringify(inverters));
   } catch (e) {
     console.error('LocalStorage save inverters error:', e);
   }
@@ -68,58 +32,22 @@ function saveLocalInverters(userId = 'guest', inverters) {
 
 function getLocalGeneration(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_GENERATION_KEY : `${LOCAL_GENERATION_KEY}_${userId}`;
+    const key = `${LOCAL_GENERATION_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-
-    const fallbackKeys = [
-      LOCAL_GENERATION_KEY,
-      `${LOCAL_GENERATION_KEY}_guest`,
-      `${LOCAL_GENERATION_KEY}_google_demo_user`,
-      `${LOCAL_GENERATION_KEY}_demo-user-001`,
-    ];
-
-    for (const fbKey of fallbackKeys) {
-      const fbRaw = localStorage.getItem(fbKey);
-      if (fbRaw) {
-        const parsed = JSON.parse(fbRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          saveLocalGeneration(userId, parsed);
-          return parsed;
-        }
-      }
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(LOCAL_GENERATION_KEY)) {
-        const val = localStorage.getItem(storageKey);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              saveLocalGeneration(userId, parsed);
-              return parsed;
-            }
-          } catch {}
-        }
-      }
-    }
-
-    return INITIAL_SOLAR_GENERATION.map((g) => ({ ...g, userId }));
+    return [];
   } catch {
-    return INITIAL_SOLAR_GENERATION.map((g) => ({ ...g, userId }));
+    return [];
   }
 }
 
 function saveLocalGeneration(userId = 'guest', items) {
   try {
-    const key = userId === 'guest' ? LOCAL_GENERATION_KEY : `${LOCAL_GENERATION_KEY}_${userId}`;
+    const key = `${LOCAL_GENERATION_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(items));
-    localStorage.setItem(LOCAL_GENERATION_KEY, JSON.stringify(items));
   } catch (e) {
     console.error('LocalStorage save generation error:', e);
   }

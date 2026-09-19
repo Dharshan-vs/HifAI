@@ -153,18 +153,54 @@ export const INITIAL_OFFERS = [
   },
 ];
 
-function getLocalTransactions() {
+function getLocalTransactions(userId = null) {
   try {
+    let all = [];
     const raw = localStorage.getItem(LOCAL_TX_KEY);
-    return raw ? JSON.parse(raw) : INITIAL_TRANSACTIONS;
+    if (raw) {
+      all = JSON.parse(raw);
+    }
+    if (!Array.isArray(all)) all = INITIAL_TRANSACTIONS;
+
+    if (!userId || userId === 'all') {
+      return all;
+    }
+
+    // Filter strictly by the specific logged in user's ID or email
+    return all.filter(
+      (tx) =>
+        String(tx.buyerId) === String(userId) ||
+        String(tx.sellerId) === String(userId) ||
+        (tx.buyerEmail && String(tx.buyerEmail).toLowerCase() === String(userId).toLowerCase()) ||
+        String(tx.userId) === String(userId)
+    );
   } catch {
-    return INITIAL_TRANSACTIONS;
+    return [];
   }
 }
 
-function saveLocalTransactions(txList) {
+function saveLocalTransactions(txList, userId = null) {
   try {
-    localStorage.setItem(LOCAL_TX_KEY, JSON.stringify(txList));
+    const existingRaw = localStorage.getItem(LOCAL_TX_KEY);
+    let all = [];
+    if (existingRaw) {
+      try {
+        all = JSON.parse(existingRaw) || [];
+      } catch {}
+    }
+    const map = new Map();
+    (Array.isArray(all) ? all : []).forEach((t) => {
+      if (t && t.id) map.set(String(t.id), t);
+    });
+    (Array.isArray(txList) ? txList : []).forEach((t) => {
+      if (t && t.id) map.set(String(t.id), t);
+    });
+    const merged = Array.from(map.values());
+
+    localStorage.setItem(LOCAL_TX_KEY, JSON.stringify(merged));
+    if (userId && userId !== 'guest') {
+      localStorage.setItem(`${LOCAL_TX_KEY}_${userId}`, JSON.stringify(txList));
+    }
   } catch (e) {
     console.error('LocalStorage save transactions error:', e);
   }
@@ -468,7 +504,7 @@ export async function fetchEnergyOffers(paramsOrSearch = '') {
 export function getUserBatteryCapacity(userId = 'guest') {
   try {
     const key = `yuga_user_battery_capacity_${userId || 'guest'}`;
-    const saved = localStorage.getItem(key) || localStorage.getItem('yuga_user_battery_capacity_guest');
+    const saved = localStorage.getItem(key);
     if (saved) {
       const parsed = parseFloat(saved);
       if (!isNaN(parsed) && parsed > 0) return parsed;
@@ -484,7 +520,6 @@ export function saveUserBatteryCapacity(userId = 'guest', capacityKwh = 150.0) {
   try {
     const val = parseFloat(capacityKwh) || 150.0;
     localStorage.setItem(`yuga_user_battery_capacity_${userId || 'guest'}`, String(val));
-    localStorage.setItem('yuga_user_battery_capacity_guest', String(val));
     return val;
   } catch (e) {
     console.warn('saveUserBatteryCapacity error:', e);
@@ -500,13 +535,19 @@ export function saveUserBatteryCapacity(userId = 'guest', capacityKwh = 150.0) {
  */
 export async function fetchProducerEnergyQuota(userId = 'guest', userName = '') {
   const [txs, sum, offers] = await Promise.all([
-    fetchUserTransactions(),
-    fetchEnergySummary(),
+    fetchUserTransactions(userId),
+    fetchEnergySummary(userId),
     fetchEnergyOffers(),
   ]);
 
   // Total energy already successfully sold and discharged by this producer
-  const totalSoldKwh = (txs || []).reduce((acc, tx) => acc + (parseFloat(tx.energyAmount) || 0), 0);
+  const totalSoldKwh = (txs || [])
+    .filter(
+      (tx) =>
+        (tx.status === 'completed' || !tx.status) &&
+        (String(tx.sellerId) === String(userId) || (userId === 'guest' && tx.sellerId === 'guest'))
+    )
+    .reduce((acc, tx) => acc + (parseFloat(tx.energyAmount) || 0), 0);
 
   // User-specific total battery storage capacity (configured capacity, defaults to 150.0 kWh)
   const totalCapacityKwh = getUserBatteryCapacity(userId);
@@ -518,15 +559,18 @@ export async function fetchProducerEnergyQuota(userId = 'guest', userName = '') 
   const isOwnerOffer = (o) => {
     if (isOfferCompletedOrDepleted(o)) return false;
     if (o.status && o.status.toLowerCase() !== 'active') return false;
-    if (userId && userId !== 'guest') {
-      if (String(o.seller_id) === String(userId)) return true;
-      if (o.seller_uid && String(o.seller_uid) === String(userId)) return true;
-      if (userName && o.seller_name && o.seller_name.trim().toLowerCase() === userName.trim().toLowerCase()) return true;
+    // Seed offers (OFFER-LOCAL-101 to 106, seller_id PROD-001..005) belong to simulated local producers, NEVER to the current logged-in user
+    if (
+      String(o.id).startsWith('OFFER-LOCAL-') ||
+      ['PROD-001', 'PROD-002', 'PROD-003', 'PROD-004', 'PROD-005'].includes(String(o.seller_id))
+    ) {
       return false;
     }
-    // For guest/demo producer:
-    if (o.seller_id === 'PROD-CURRENT' || o.seller_id === 'guest' || o.seller_name === 'Community Solar Producer') return true;
-    return false;
+    if (userId && userId !== 'guest') {
+      return String(o.seller_id) === String(userId) || String(o.seller_uid) === String(userId);
+    }
+    // For guest/demo producer: only match offers explicitly created by guest
+    return o.seller_id === 'guest' || o.seller_id === 'PROD-CURRENT' || o.seller_uid === 'PROD-CURRENT';
   };
 
   const activeProducerOffers = (offers || []).filter(isOwnerOffer);
@@ -811,10 +855,17 @@ export async function purchaseEnergy(
   });
 
   // 4. Create local transaction record with confirmed on-chain details
+  const buyerId = buyerProfile?.uid || buyerProfile?.firebase_uid || buyerProfile?.id || 'guest';
+  const buyerEmail = buyerProfile?.email || '';
+  const sellerId = offerObj?.seller_id || 'PROD-001';
+
   const newTx = normalizeTransaction({
     id: tradeId,
     type: 'purchase',
+    buyerId,
+    buyerEmail,
     buyer: buyerName,
+    sellerId,
     seller: sellerName,
     location: sellerLoc,
     distance_value: dist,
@@ -833,7 +884,7 @@ export async function purchaseEnergy(
   });
 
   const currentLocal = getLocalTransactions();
-  saveLocalTransactions([newTx, ...currentLocal]);
+  saveLocalTransactions([newTx, ...currentLocal], buyerId);
 
   // 5. Update remaining kWh on local offer and remove/complete if 0
   const currentOffers = getLocalOffers();
@@ -1010,16 +1061,27 @@ export async function cancelTransaction(txId, reason = '') {
   }
 }
 
-export async function fetchUserTransactions() {
+export async function fetchUserTransactions(userId = null) {
   try {
-    const res = await fetchWithAuth('/energy/transactions');
+    const endpoint = userId && userId !== 'guest' ? `/energy/transactions?userId=${encodeURIComponent(userId)}` : '/energy/transactions';
+    const res = await fetchWithAuth(endpoint);
     if (res.transactions && res.transactions.length > 0) {
-      return res.transactions.map(normalizeTransaction);
+      const all = res.transactions.map(normalizeTransaction);
+      if (userId && userId !== 'all') {
+        return all.filter(
+          (t) =>
+            String(t.buyerId) === String(userId) ||
+            String(t.sellerId) === String(userId) ||
+            String(t.buyerEmail).toLowerCase() === String(userId).toLowerCase() ||
+            String(t.userId) === String(userId)
+        );
+      }
+      return all;
     }
-    return getLocalTransactions().map(normalizeTransaction);
+    return getLocalTransactions(userId).map(normalizeTransaction);
   } catch (error) {
     console.warn('Error fetching user transactions, returning local cache:', error);
-    return getLocalTransactions().map(normalizeTransaction);
+    return getLocalTransactions(userId).map(normalizeTransaction);
   }
 }
 
@@ -1028,11 +1090,12 @@ export const fetchMarketplaceTransactions = fetchUserTransactions;
 export async function fetchEnergySummary(userId = 'guest') {
   let dbSummary = {};
   try {
-    const res = await fetchWithAuth('/energy/summary');
+    const endpoint = userId && userId !== 'guest' ? `/energy/summary?userId=${encodeURIComponent(userId)}` : '/energy/summary';
+    const res = await fetchWithAuth(endpoint);
     if (res?.summary) dbSummary = res.summary;
   } catch {}
 
-  const localTxs = getLocalTransactions();
+  const localTxs = getLocalTransactions(userId);
   const totalPurchased = localTxs
     .filter((t) => t.status !== 'cancelled')
     .reduce((acc, t) => acc + (parseFloat(t.energyAmount) || 0), 0);

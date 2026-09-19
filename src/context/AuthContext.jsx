@@ -34,11 +34,12 @@ export function AuthProvider({ children }) {
       const profile = await getUserProfile(firebaseUser.uid);
       if (profile) {
         setUserProfile(profile);
+        localStorage.setItem(`yuga_user_profile_${firebaseUser.uid}`, JSON.stringify(profile));
         localStorage.setItem('yuga_user_profile', JSON.stringify(profile));
       }
     } catch {
       try {
-        const cached = localStorage.getItem('yuga_user_profile');
+        const cached = localStorage.getItem(`yuga_user_profile_${firebaseUser.uid}`);
         if (cached) setUserProfile(JSON.parse(cached));
       } catch {}
     }
@@ -47,22 +48,16 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
-    // Check for locally saved active user session or demo user
+    // Check for locally saved active user session (from real login)
     try {
       const savedActiveUser = localStorage.getItem('yuga_active_user');
       const savedProfile = localStorage.getItem('yuga_user_profile');
-      const savedDemoUser = localStorage.getItem('yuga_demo_user');
-      const savedDemoProfile = localStorage.getItem('yuga_demo_profile');
 
       if (savedActiveUser) {
         const parsed = JSON.parse(savedActiveUser);
         parsed.getIdToken = async () => 'active-token';
         setUser(parsed);
         if (savedProfile) setUserProfile(JSON.parse(savedProfile));
-        setLoading(false);
-      } else if (savedDemoUser && savedDemoProfile) {
-        setUser(JSON.parse(savedDemoUser));
-        setUserProfile(JSON.parse(savedDemoProfile));
         setLoading(false);
       }
     } catch (e) {
@@ -87,6 +82,11 @@ export function AuthProvider({ children }) {
             );
           } catch {}
           await loadUserProfile(firebaseUser);
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          localStorage.removeItem('yuga_active_user');
+          localStorage.removeItem('yuga_user_profile');
         }
         setLoading(false);
       },

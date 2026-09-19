@@ -37,12 +37,12 @@ export async function initiateRazorpayPayment({
   onDismiss,
 }) {
   const isLoaded = await loadRazorpayScript();
-  const razorpayKey = import.meta.env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_YUGA_Microgrid_CleanEnergy';
+  const razorpayKey = import.meta.env?.VITE_RAZORPAY_KEY_ID || 'rzp_test_TdmkMKCtgysE6c';
 
   // Amount in Paise (e.g. ₹100.50 -> 10050 paise)
   const amountInPaise = Math.round(parseFloat(amountInr) * 100);
 
-  if (isLoaded && window.Razorpay && !razorpayKey.includes('YUGA_Microgrid_CleanEnergy')) {
+  if (isLoaded && window.Razorpay) {
     const options = {
       key: razorpayKey,
       amount: amountInPaise,
@@ -50,7 +50,6 @@ export async function initiateRazorpayPayment({
       name: 'YUGA Energy Microgrid',
       description: `P2P Clean Solar Energy Purchase: ${energyKwh} kWh from ${sellerName}`,
       image: '/favicon.ico',
-      order_id: '', // Generated on live backend when configured
       handler: function (response) {
         if (onSuccess) {
           onSuccess({

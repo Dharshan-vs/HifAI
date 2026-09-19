@@ -26,7 +26,7 @@ export default function MarketplacePage() {
     setLoadingTx(true);
     setErrorTx(null);
     try {
-      const data = await fetchUserTransactions();
+      const data = await fetchUserTransactions(user?.uid || 'guest');
       setTransactions(data || []);
     } catch (err) {
       console.error('Failed to load transactions:', err);

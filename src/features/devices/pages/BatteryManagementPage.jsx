@@ -67,10 +67,11 @@ export default function BatteryManagementPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      const currentUid = user?.uid || 'guest';
       const [txs, sumData, quota] = await Promise.all([
-        fetchUserTransactions(),
-        fetchEnergySummary(),
-        fetchProducerEnergyQuota(user?.uid, userProfile?.fullName),
+        fetchUserTransactions(currentUid),
+        fetchEnergySummary(currentUid),
+        fetchProducerEnergyQuota(currentUid, userProfile?.fullName),
       ]);
       setTransactions(txs || []);
       if (sumData) setSummary(sumData);

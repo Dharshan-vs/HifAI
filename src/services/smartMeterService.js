@@ -8,58 +8,22 @@ const LOCAL_METERS_KEY = 'hifai_registered_smart_meters';
 
 function getLocalMeters(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_METERS_KEY : `${LOCAL_METERS_KEY}_${userId}`;
+    const key = `${LOCAL_METERS_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-
-    const fallbackKeys = [
-      LOCAL_METERS_KEY,
-      `${LOCAL_METERS_KEY}_guest`,
-      `${LOCAL_METERS_KEY}_google_demo_user`,
-      `${LOCAL_METERS_KEY}_demo-user-001`,
-    ];
-
-    for (const fbKey of fallbackKeys) {
-      const fbRaw = localStorage.getItem(fbKey);
-      if (fbRaw) {
-        const parsed = JSON.parse(fbRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          saveLocalMeters(userId, parsed);
-          return parsed;
-        }
-      }
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(LOCAL_METERS_KEY)) {
-        const val = localStorage.getItem(storageKey);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              saveLocalMeters(userId, parsed);
-              return parsed;
-            }
-          } catch {}
-        }
-      }
-    }
-
-    return INITIAL_METERS.map((m) => ({ ...m, userId }));
+    return [];
   } catch {
-    return INITIAL_METERS.map((m) => ({ ...m, userId }));
+    return [];
   }
 }
 
 function saveLocalMeters(userId = 'guest', meters) {
   try {
-    const key = userId === 'guest' ? LOCAL_METERS_KEY : `${LOCAL_METERS_KEY}_${userId}`;
+    const key = `${LOCAL_METERS_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(meters));
-    localStorage.setItem(LOCAL_METERS_KEY, JSON.stringify(meters));
   } catch (e) {
     console.error('LocalStorage save error:', e);
   }
@@ -75,8 +39,10 @@ export async function registerSmartMeter(userId = 'guest', meterData) {
     id: `SM-LOCAL-${Date.now()}`,
     userId,
     ...meterData,
-    lat: meterData.lat ? parseFloat(parseFloat(meterData.lat).toFixed(4)) : 13.0827,
-    lon: meterData.lon ? parseFloat(parseFloat(meterData.lon).toFixed(4)) : 80.2707,
+    lat: meterData.lat ? parseFloat(parseFloat(meterData.lat).toFixed(4)) : 10.3673,
+    lon: meterData.lon ? parseFloat(parseFloat(meterData.lon).toFixed(4)) : 77.9803,
+    isLocationLocked: true,
+    isPinned: true,
     isSimulationMode: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -90,8 +56,10 @@ export async function registerSmartMeter(userId = 'guest', meterData) {
       lat: newMeter.lat,
       lon: newMeter.lon,
       isPinned: true,
+      isLocationLocked: true,
+      lockedAt: new Date().toISOString(),
     };
-    localStorage.setItem(`yuga_consumer_location_${userId}`, JSON.stringify(locObj));
+    localStorage.setItem(`yuga_consumer_location_${userId || 'guest'}`, JSON.stringify(locObj));
     localStorage.setItem('yuga_consumer_location', JSON.stringify(locObj));
     if (newMeter.location) {
       localStorage.setItem('hifai_user_city', newMeter.location.split(',')[0].trim());
@@ -108,8 +76,12 @@ export async function updateSmartMeter(userId = 'guest', id, meterData) {
       ? {
           ...m,
           ...meterData,
-          lat: meterData.lat ? parseFloat(parseFloat(meterData.lat).toFixed(4)) : (m.lat || 13.0827),
-          lon: meterData.lon ? parseFloat(parseFloat(meterData.lon).toFixed(4)) : (m.lon || 80.2707),
+          // Preserve permanently locked 1-time pinned coordinates
+          lat: m.lat || (meterData.lat ? parseFloat(parseFloat(meterData.lat).toFixed(4)) : 10.3673),
+          lon: m.lon || (meterData.lon ? parseFloat(parseFloat(meterData.lon).toFixed(4)) : 77.9803),
+          location: m.location || meterData.location,
+          isLocationLocked: true,
+          isPinned: true,
           updatedAt: new Date().toISOString(),
         }
       : m
@@ -124,6 +96,7 @@ export async function updateSmartMeter(userId = 'guest', id, meterData) {
         lat: target.lat,
         lon: target.lon,
         isPinned: true,
+        isLocationLocked: true,
       };
       localStorage.setItem(`yuga_consumer_location_${userId}`, JSON.stringify(locObj));
       localStorage.setItem('yuga_consumer_location', JSON.stringify(locObj));
@@ -147,58 +120,22 @@ const LOCAL_READINGS_KEY = 'hifai_registered_smart_readings';
 
 function getLocalReadings(userId = 'guest') {
   try {
-    const key = userId === 'guest' ? LOCAL_READINGS_KEY : `${LOCAL_READINGS_KEY}_${userId}`;
+    const key = `${LOCAL_READINGS_KEY}_${userId || 'guest'}`;
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-
-    const fallbackKeys = [
-      LOCAL_READINGS_KEY,
-      `${LOCAL_READINGS_KEY}_guest`,
-      `${LOCAL_READINGS_KEY}_google_demo_user`,
-      `${LOCAL_READINGS_KEY}_demo-user-001`,
-    ];
-
-    for (const fbKey of fallbackKeys) {
-      const fbRaw = localStorage.getItem(fbKey);
-      if (fbRaw) {
-        const parsed = JSON.parse(fbRaw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          saveLocalReadings(userId, parsed);
-          return parsed;
-        }
-      }
-    }
-
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(LOCAL_READINGS_KEY)) {
-        const val = localStorage.getItem(storageKey);
-        if (val) {
-          try {
-            const parsed = JSON.parse(val);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              saveLocalReadings(userId, parsed);
-              return parsed;
-            }
-          } catch {}
-        }
-      }
-    }
-
-    return INITIAL_SMART_READINGS.map((r) => ({ ...r, userId }));
+    return [];
   } catch {
-    return INITIAL_SMART_READINGS.map((r) => ({ ...r, userId }));
+    return [];
   }
 }
 
 function saveLocalReadings(userId = 'guest', readings) {
   try {
-    const key = userId === 'guest' ? LOCAL_READINGS_KEY : `${LOCAL_READINGS_KEY}_${userId}`;
+    const key = `${LOCAL_READINGS_KEY}_${userId || 'guest'}`;
     localStorage.setItem(key, JSON.stringify(readings));
-    localStorage.setItem(LOCAL_READINGS_KEY, JSON.stringify(readings));
   } catch (e) {
     console.error('LocalStorage save readings error:', e);
   }

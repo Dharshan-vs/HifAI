@@ -22,6 +22,7 @@ export function getFirebaseErrorMessage(error) {
     'auth/quota-exceeded': 'SMS quota exceeded. Try again later or use email login.',
     'auth/captcha-check-failed': 'reCAPTCHA verification failed. Refresh and try again.',
     'auth/requires-recent-login': 'Please sign in again to complete this action.',
+    'auth/unauthorized-domain': 'This domain is not authorized in Firebase Console. Please add your domain under Firebase Console → Authentication → Settings → Authorized domains.',
     'storage/unauthorized': 'You do not have permission to upload files.',
     'storage/canceled': 'Upload was cancelled.',
     'storage/unknown': 'An unknown error occurred during upload.',

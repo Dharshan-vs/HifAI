@@ -57,6 +57,8 @@ export default function LocationMapPicker({
   value,
   onChange,
   label = 'Smart Meter Live Installation Location & GPS Pin',
+  readOnly = false,
+  isLocked = false,
 }) {
   const [addressInput, setAddressInput] = useState(value?.address || 'Main Road, Dindigul, Tamil Nadu');
   const [lat, setLat] = useState(value?.lat ?? 10.3673);
@@ -217,108 +219,116 @@ export default function LocationMapPicker({
         </span>
       </div>
 
-      {/* Smart Meter Sync Callout */}
-      {smartMeterInfo && (
+      {/* Smart Meter Sync Callout (shown only when unlocked and linked) */}
+      {!isLocked && !readOnly && smartMeterInfo && (
         <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl flex items-center justify-between text-[11px] text-emerald-950">
           <span className="flex items-center gap-1.5 font-semibold">
             <Zap className="w-3.5 h-3.5 text-emerald-600" /> Linked Smart Meter: {smartMeterInfo.name} (#{smartMeterInfo.serialNumber})
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              if (smartMeterInfo.lat && smartMeterInfo.lon) {
-                handleUpdateCoordinates(smartMeterInfo.location || 'Smart Meter Site', smartMeterInfo.lat, smartMeterInfo.lon);
-                toast.success('📍 Re-pinned to Smart Meter Site!');
-              }
-            }}
-            className="text-[10px] font-extrabold text-emerald-700 hover:text-emerald-900 bg-white/70 px-2 py-0.5 rounded-md border border-emerald-500/30"
-          >
-            Re-Pin Meter Site
-          </button>
+          <span className="text-[10px] font-mono font-bold text-emerald-800 bg-white/70 px-2 py-0.5 rounded-md border border-emerald-500/30">
+            GPS Locked
+          </span>
         </div>
       )}
 
-      {/* Address Search Bar & GPS Auto-Detect */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Type your exact location (e.g. Main Road, Dindigul / Nagal Nagar, Dindigul)"
-            value={addressInput}
-            onChange={(e) => setAddressInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGeocodeAddress(e)}
-            className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-xl font-semibold focus:outline-none focus:border-emerald-500 text-xs text-navy shadow-xs"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={handleGeocodeAddress}
-          disabled={geocoding}
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-colors shrink-0 shadow-sm flex items-center gap-1.5"
-        >
-          {geocoding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
-          Pin Location
-        </button>
-        <button
-          type="button"
-          onClick={handleDetectGPS}
-          disabled={locating}
-          className="px-3 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-800 rounded-xl border border-cyan-500/30 transition-colors shrink-0 flex items-center gap-1.5 font-bold text-xs shadow-xs"
-          title="Detect Exact Device GPS Coordinates"
-        >
-          {locating ? <Loader2 className="w-4 h-4 animate-spin text-cyan-600" /> : <Crosshair className="w-4 h-4" />}
-          <span className="hidden sm:inline">Use GPS</span>
-        </button>
-      </div>
-
-      {/* Manual Coordinate Fine-Tuning Toggle */}
-      <div className="flex justify-between items-center text-[11px] text-text-secondary pt-0.5">
-        <button
-          type="button"
-          onClick={() => setShowManualCoords(!showManualCoords)}
-          className="text-primary hover:text-emerald-700 font-semibold flex items-center gap-1"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          {showManualCoords ? 'Hide Manual Coordinates' : 'Fine-Tune Exact Lat / Lon'}
-        </button>
-        <span className="font-mono text-[10px]">
-          {lat.toFixed(4)}° N, {lon.toFixed(4)}° E
-        </span>
-      </div>
-
-      {showManualCoords && (
-        <div className="p-3 bg-background border border-border rounded-xl grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <label className="text-[10px] uppercase font-bold text-text-secondary block mb-1">
-              Latitude (Decimal Degrees)
-            </label>
-            <input
-              type="number"
-              step="0.000001"
-              value={lat}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) handleUpdateCoordinates(addressInput, val, lon);
-              }}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-xs font-mono font-bold text-navy"
-            />
+      {/* Address Search Bar & GPS Auto-Detect (Hidden when locked/read-only) */}
+      {!isLocked && !readOnly ? (
+        <>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Type your exact location (e.g. Main Road, Dindigul / Nagal Nagar, Dindigul)"
+                value={addressInput}
+                onChange={(e) => setAddressInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleGeocodeAddress(e)}
+                className="w-full pl-9 pr-3 py-2.5 bg-background border border-border rounded-xl font-semibold focus:outline-none focus:border-emerald-500 text-xs text-navy shadow-xs"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleGeocodeAddress}
+              disabled={geocoding}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl text-xs transition-colors shrink-0 shadow-sm flex items-center gap-1.5"
+            >
+              {geocoding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+              Pin Location
+            </button>
+            <button
+              type="button"
+              onClick={handleDetectGPS}
+              disabled={locating}
+              className="px-3 py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-800 rounded-xl border border-cyan-500/30 transition-colors shrink-0 flex items-center gap-1.5 font-bold text-xs shadow-xs"
+              title="Detect Exact Device GPS Coordinates"
+            >
+              {locating ? <Loader2 className="w-4 h-4 animate-spin text-cyan-600" /> : <Crosshair className="w-4 h-4" />}
+              <span className="hidden sm:inline">Use GPS</span>
+            </button>
           </div>
-          <div>
-            <label className="text-[10px] uppercase font-bold text-text-secondary block mb-1">
-              Longitude (Decimal Degrees)
-            </label>
-            <input
-              type="number"
-              step="0.000001"
-              value={lon}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                if (!isNaN(val)) handleUpdateCoordinates(addressInput, lat, val);
-              }}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-xs font-mono font-bold text-navy"
-            />
+
+          {/* Manual Coordinate Fine-Tuning Toggle */}
+          <div className="flex justify-between items-center text-[11px] text-text-secondary pt-0.5">
+            <button
+              type="button"
+              onClick={() => setShowManualCoords(!showManualCoords)}
+              className="text-primary hover:text-emerald-700 font-semibold flex items-center gap-1"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              {showManualCoords ? 'Hide Manual Coordinates' : 'Fine-Tune Exact Lat / Lon'}
+            </button>
+            <span className="font-mono text-[10px]">
+              {lat.toFixed(4)}° N, {lon.toFixed(4)}° E
+            </span>
           </div>
+
+          {showManualCoords && (
+            <div className="p-3 bg-background border border-border rounded-xl grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-text-secondary block mb-1">
+                  Latitude (Decimal Degrees)
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  value={lat}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) handleUpdateCoordinates(addressInput, val, lon);
+                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-xs font-mono font-bold text-navy"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-text-secondary block mb-1">
+                  Longitude (Decimal Degrees)
+                </label>
+                <input
+                  type="number"
+                  step="0.000001"
+                  value={lon}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) handleUpdateCoordinates(addressInput, lat, val);
+                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-border bg-surface text-xs font-mono font-bold text-navy"
+                />
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Locked 1-Time Pin Notice */
+        <div className="p-3 bg-slate-900 text-slate-200 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="font-semibold text-[11px]">
+              Physical Smart Meter Location is <strong className="text-emerald-300">Pinned &amp; Permanently Locked</strong>
+            </span>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-md font-bold">
+            1-Time Pinned
+          </span>
         </div>
       )}
 
@@ -339,7 +349,7 @@ export default function LocationMapPicker({
         {/* Overlay Badges */}
         <div className="absolute top-3 left-3 bg-navy/90 text-white px-3 py-1.5 rounded-xl text-[10px] font-extrabold backdrop-blur-md border border-white/20 flex items-center gap-1.5 shadow-md">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Live Smart Meter Pinned Location</span>
+          <span>{isLocked || readOnly ? '🔒 Locked Physical Meter Pin' : 'Live Smart Meter Pinned Location'}</span>
         </div>
 
         <div className="absolute bottom-3 right-3 bg-white/95 text-navy px-3 py-1 rounded-lg text-[10px] font-mono font-extrabold border border-border shadow-md flex items-center gap-1">
@@ -357,7 +367,7 @@ export default function LocationMapPicker({
           </span>
         </div>
         <span className="font-mono text-emerald-700 font-extrabold shrink-0">
-          Smart Meter Locked ✅
+          {isLocked || readOnly ? '🔒 Pinned Once & Locked' : 'Smart Meter Locked ✅'}
         </span>
       </div>
     </div>
