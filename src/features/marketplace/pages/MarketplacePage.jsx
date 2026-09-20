@@ -12,7 +12,7 @@ import { USER_ROLES, ROUTES } from '../../../utils/constants';
 
 export default function MarketplacePage() {
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
   const userRole = userProfile?.role || USER_ROLES.CONSUMER;
   const isProducer = userRole === USER_ROLES.PRODUCER;
   const isProducerOrProsumer = isProducer || userRole === 'prosumer' || userRole === USER_ROLES.BUSINESS;
