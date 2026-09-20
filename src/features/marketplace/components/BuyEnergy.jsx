@@ -137,6 +137,67 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
     };
   });
 
+  // Search & Filter States (HD-50 & HD-51)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSource, setSelectedSource] = useState('all'); // Dynamic based on loaded offers
+  const [priceRange, setPriceRange] = useState('all'); // 'all' | 'under_6' | 'under_8' | '8_to_10' | 'above_10'
+  const [minKwhFilter, setMinKwhFilter] = useState('all'); // 'all' | '5' | '10' | '20' | '50'
+  const [locationFilter, setLocationFilter] = useState('within_1km'); // 'within_1km' | 'all'
+  const [sortBy, setSortBy] = useState('proximity'); // 'proximity' | 'price_asc' | 'price_desc' | 'kwh_desc'
+
+  const loadOffers = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const data = await fetchEnergyOffers();
+      // Filter only currently active listings with remaining energy
+      const activeListings = (data || []).filter(
+        (o) => (o.status ? o.status.toLowerCase() === 'active' : true) && parseFloat(o.remaining_kwh || 0) > 0
+      );
+      setOffers(activeListings);
+      try {
+        const alerts = checkUnsoldOffersAlert(user?.uid || 'guest');
+        setUnsoldAlerts(alerts || []);
+      } catch {}
+    } catch (err) {
+      console.error('Failed to load energy offers:', err);
+      setFetchError(err.message || 'Unable to connect to the marketplace server. Please check your connection.');
+      toast.error('Failed to load energy offers');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.uid]);
+
+  // Helper to calculate real-time Haversine distance between Smart Meter location and Producer offer
+  const getLiveDistanceKm = useCallback(
+    (offer) => {
+      if (!offer) return 0.5;
+
+      const isSeed =
+        offer.is_seed ||
+        String(offer.id).startsWith('OFFER-LOCAL-') ||
+        ['PROD-001', 'PROD-002', 'PROD-003', 'PROD-004', 'PROD-005'].includes(String(offer.seller_id));
+
+      if (isSeed && offer.distance_value !== undefined) {
+        return parseFloat(Number(offer.distance_value).toFixed(2));
+      }
+
+      const cLat = consumerLocation?.lat ?? 10.3673;
+      const cLon = consumerLocation?.lon ?? 77.9803;
+      const pLat = parseFloat(offer.lat ?? (offer.seller_lat ?? cLat + 0.003));
+      const pLon = parseFloat(offer.lon ?? (offer.seller_lon ?? cLon + 0.002));
+      
+      const realDist = calculateDistanceKm(cLat, cLon, pLat, pLon);
+      
+      // If coordinates are in different cities due to mock data (e.g. > 50km apart), use the offer's microgrid proximity
+      if (realDist > 50 && offer.distance_value !== undefined) {
+        return parseFloat(Number(offer.distance_value).toFixed(2));
+      }
+      return parseFloat(realDist.toFixed(2));
+    },
+    [consumerLocation]
+  );
+
   // Automatically load location from registered Smart Meter or GPS
   useEffect(() => {
     async function loadSmartMeterLocation() {
@@ -175,6 +236,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
     }
 
     loadSmartMeterLocation();
+    loadOffers();
 
     const handleSmartMeterUpdate = () => {
       loadSmartMeterLocation();
@@ -189,71 +251,6 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
       window.removeEventListener('storage', handleSmartMeterUpdate);
     };
   }, [user?.uid, loadOffers]);
-
-  // Helper to calculate real-time Haversine distance between Smart Meter location and Producer offer
-  const getLiveDistanceKm = useCallback(
-    (offer) => {
-      if (!offer) return 0.5;
-
-      const isSeed =
-        offer.is_seed ||
-        String(offer.id).startsWith('OFFER-LOCAL-') ||
-        ['PROD-001', 'PROD-002', 'PROD-003', 'PROD-004', 'PROD-005'].includes(String(offer.seller_id));
-
-      if (isSeed && offer.distance_value !== undefined) {
-        return parseFloat(Number(offer.distance_value).toFixed(2));
-      }
-
-      const cLat = consumerLocation?.lat ?? 10.3673;
-      const cLon = consumerLocation?.lon ?? 77.9803;
-      const pLat = parseFloat(offer.lat ?? (offer.seller_lat ?? cLat + 0.003));
-      const pLon = parseFloat(offer.lon ?? (offer.seller_lon ?? cLon + 0.002));
-      
-      const realDist = calculateDistanceKm(cLat, cLon, pLat, pLon);
-      
-      // If coordinates are in different cities due to mock data (e.g. > 50km apart), use the offer's microgrid proximity
-      if (realDist > 50 && offer.distance_value !== undefined) {
-        return parseFloat(Number(offer.distance_value).toFixed(2));
-      }
-      return parseFloat(realDist.toFixed(2));
-    },
-    [consumerLocation]
-  );
-
-  // Search & Filter States (HD-50 & HD-51)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSource, setSelectedSource] = useState('all'); // Dynamic based on loaded offers
-  const [priceRange, setPriceRange] = useState('all'); // 'all' | 'under_6' | 'under_8' | '8_to_10' | 'above_10'
-  const [minKwhFilter, setMinKwhFilter] = useState('all'); // 'all' | '5' | '10' | '20' | '50'
-  const [locationFilter, setLocationFilter] = useState('within_1km'); // 'within_1km' | 'all'
-  const [sortBy, setSortBy] = useState('proximity'); // 'proximity' | 'price_asc' | 'price_desc' | 'kwh_desc'
-
-  const loadOffers = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const data = await fetchEnergyOffers();
-      // Filter only currently active listings with remaining energy
-      const activeListings = (data || []).filter(
-        (o) => (o.status ? o.status.toLowerCase() === 'active' : true) && parseFloat(o.remaining_kwh || 0) > 0
-      );
-      setOffers(activeListings);
-      try {
-        const alerts = checkUnsoldOffersAlert(user?.uid || 'guest');
-        setUnsoldAlerts(alerts || []);
-      } catch {}
-    } catch (err) {
-      console.error('Failed to load energy offers:', err);
-      setFetchError(err.message || 'Unable to connect to the marketplace server. Please check your connection.');
-      toast.error('Failed to load energy offers');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.uid]);
-
-  useEffect(() => {
-    loadOffers();
-  }, [loadOffers]);
 
   // Dynamically extract all available energy sources from current active listings
   const dynamicSources = useMemo(() => {
