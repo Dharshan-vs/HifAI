@@ -131,9 +131,9 @@ export default function RazorpayCheckoutModal({
               <X className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-extrabold uppercase border border-blue-400/30 flex items-center gap-1">
-                <Lock className="w-3 h-3 text-blue-300" /> Razorpay Secure Gateway
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 text-[10px] font-extrabold uppercase border border-amber-400/40 flex items-center gap-1 shadow-xs">
+                ⚡ Razorpay Test Mode Active
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase border border-emerald-400/30 flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3 text-emerald-300" /> Smart Contract Escrow
@@ -146,7 +146,7 @@ export default function RazorpayCheckoutModal({
                   Confirm & Pay for Energy
                 </h3>
                 <p className="text-xs text-blue-200/80">
-                  Beneficiary: {offer.seller_name} ({offer.seller_city || 'Local Microgrid'})
+                  Beneficiary: {offer.seller_name} ({offer.seller_city || 'Local Microgrid'}) • <span className="text-amber-300 font-semibold">Test Sandbox</span>
                 </p>
               </div>
               <div className="text-right">
@@ -472,7 +472,7 @@ export default function RazorpayCheckoutModal({
               ) : (
                 <>
                   <Lock className="w-4 h-4" />
-                  Pay ₹{totalInr.toFixed(2)} via Razorpay
+                  Pay ₹{totalInr.toFixed(2)} via Razorpay (Test Mode)
                 </>
               )}
             </button>
