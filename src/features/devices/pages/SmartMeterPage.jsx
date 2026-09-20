@@ -186,7 +186,7 @@ export default function SmartMeterPage() {
                   Serial No: <strong className="font-mono text-navy">{activeMeter.serialNumber}</strong> • Fixed Site: <strong className="text-navy">{activeMeter.location || 'Household Smart Meter Site'}</strong>
                 </p>
                 <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1.5 pt-0.5">
-                  <Zap className="w-3.5 h-3.5 text-lime-600" /> Physical installation location permanently pinned once. Microgrid transfer radius (&le; 1.0 km) anchored to this location.
+                  <Zap className="w-3.5 h-3.5 text-lime-600" /> Physical installation location permanently pinned once. Microgrid transfer radius (&le; 5.0 km) anchored to this location.
                 </p>
               </div>
             </div>

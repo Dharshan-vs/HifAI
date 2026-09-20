@@ -319,7 +319,7 @@ router.post('/purchase', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'You cannot purchase your own energy offer' });
     }
 
-    // Microgrid radius verification (<= 1.0 km)
+    // Microgrid radius verification (<= 5.0 km)
     let calculatedDist = parseFloat(distance_km);
     if (consumer_lat !== undefined && consumer_lon !== undefined) {
       calculatedDist = calculateDistanceKm(
@@ -329,9 +329,9 @@ router.post('/purchase', verifyToken, async (req, res) => {
         parseFloat(offer.lon || 80.2707)
       );
     }
-    if (!isNaN(calculatedDist) && calculatedDist > 1.0) {
+    if (!isNaN(calculatedDist) && calculatedDist > 5.0) {
       return res.status(400).json({
-        error: `Energy transfer restricted: Distance (${calculatedDist.toFixed(2)} km) exceeds the strict 1.0 km microgrid limit for peer-to-peer electricity transfer.`,
+        error: `Energy transfer restricted: Distance (${calculatedDist.toFixed(2)} km) exceeds the strict 5.0 km microgrid limit for peer-to-peer electricity transfer.`,
       });
     }
 

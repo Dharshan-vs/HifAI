@@ -108,7 +108,7 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
                 <p className="text-xs text-text-secondary">
                   {meter
                     ? 'Physical Smart Meter location is permanently pinned & locked'
-                    : 'Pin your physical Smart Meter location once for 1.0 km P2P Microgrid transfers'}
+                    : 'Pin your physical Smart Meter location once for 5.0 km P2P Microgrid transfers'}
                 </p>
               </div>
             </div>
@@ -126,7 +126,7 @@ export default function SmartMeterForm({ isOpen, onClose, onSubmit, meter = null
               <div>
                 <strong className="block font-bold">1-Time Physical Installation Pin:</strong>
                 <span>
-                  Your household Smart Meter GPS location is pinned <strong>only once</strong> upon registration to permanently anchor your node for 1.0 km microgrid energy transfers.
+                  Your household Smart Meter GPS location is pinned <strong>only once</strong> upon registration to permanently anchor your node for 5.0 km microgrid energy transfers.
                 </span>
               </div>
             </div>

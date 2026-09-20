@@ -66,11 +66,11 @@ async function runHD51Tests() {
   });
 
   // 7. Distance & Microgrid Restriction Check
-  console.log('\n[TEST 7] 1.0 km Microgrid Restriction:');
-  const eligibleTransfers = allListings.filter(o => parseFloat(o.distance_value ?? 0.6) <= 1.0);
-  const outOfRange = allListings.filter(o => parseFloat(o.distance_value ?? 0.6) > 1.0);
-  console.log(`  ✓ Within 1.0 km (Transfer Eligible): ${eligibleTransfers.length}`);
-  console.log(`  ✓ Out of Range (> 1.0 km): ${outOfRange.length} (Visible in All Listings, Purchase Restricted)`);
+  console.log('\n[TEST 7] 5.0 km Microgrid Restriction:');
+  const eligibleTransfers = allListings.filter(o => parseFloat(o.distance_value ?? 0.6) <= 5.0);
+  const outOfRange = allListings.filter(o => parseFloat(o.distance_value ?? 0.6) > 5.0);
+  console.log(`  ✓ Within 5.0 km (Transfer Eligible): ${eligibleTransfers.length}`);
+  console.log(`  ✓ Out of Range (> 5.0 km): ${outOfRange.length} (Visible in All Listings, Purchase Restricted)`);
 
   // 8. Empty State verification (impossible filter condition)
   console.log('\n[TEST 8] Empty State Filter:');

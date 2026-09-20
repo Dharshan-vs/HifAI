@@ -215,7 +215,7 @@ export default function LocationMapPicker({
           {label}
         </label>
         <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-800 rounded-md font-mono text-[10px] font-extrabold border border-emerald-500/20 self-start sm:self-auto">
-          ⚡ 1.0 km Microgrid Transfer Radius
+          ⚡ 5.0 km Microgrid Transfer Radius
         </span>
       </div>
 

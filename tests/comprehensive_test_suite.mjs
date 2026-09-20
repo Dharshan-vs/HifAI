@@ -135,23 +135,23 @@ async function runComprehensiveSuite() {
     newSystems.length === 0 && newSync.length === 0 && newWallet.balance === 0,
     'All entities zero');
 
-  // BB-2: Boundary Value Analysis on Distance Rules (0.99 km allowed, 1.01 km blocked)
+  // BB-2: Boundary Value Analysis on Distance Rules (4.99 km allowed, 5.01 km blocked)
   let buyWithinLimit = false;
   try {
-    const res = await purchaseEnergy('OFFER-VALID', 5, { seller_name: 'Near Prosumer', price_per_kwh: 6.5 }, 0.99, { displayName: 'Near Buyer' });
+    const res = await purchaseEnergy('OFFER-VALID', 5, { seller_name: 'Near Prosumer', price_per_kwh: 6.5 }, 4.99, { displayName: 'Near Buyer' });
     if (res.transaction || res.success) buyWithinLimit = true;
   } catch (err) {
     buyWithinLimit = false;
   }
-  record('Black-Box', 'Distance Boundary: 0.99 km purchase is ACCEPTED', buyWithinLimit, 'Within microgrid radius');
+  record('Black-Box', 'Distance Boundary: 4.99 km purchase is ACCEPTED', buyWithinLimit, 'Within microgrid radius');
 
   let buyExceedLimitBlocked = false;
   try {
-    await purchaseEnergy('OFFER-INVALID', 5, { seller_name: 'Far Prosumer', price_per_kwh: 6.5 }, 1.01, { displayName: 'Far Buyer' });
+    await purchaseEnergy('OFFER-INVALID', 5, { seller_name: 'Far Prosumer', price_per_kwh: 6.5 }, 5.01, { displayName: 'Far Buyer' });
   } catch (err) {
-    if (err.message.includes('1.0 km')) buyExceedLimitBlocked = true;
+    if (err.message.includes('5.0 km')) buyExceedLimitBlocked = true;
   }
-  record('Black-Box', 'Distance Boundary: 1.01 km purchase is REJECTED', buyExceedLimitBlocked, 'Outside microgrid radius');
+  record('Black-Box', 'Distance Boundary: 5.01 km purchase is REJECTED', buyExceedLimitBlocked, 'Outside microgrid radius');
 
   // BB-3: Single Solar System Limit for Producers
   const bbProducer = 'bb_producer_solar_array';

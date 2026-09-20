@@ -9,7 +9,7 @@ import { creditProducerWallet, getUserBankDetails } from './walletService.js';
 const LOCAL_TX_KEY = 'hifai_marketplace_transactions';
 const LOCAL_OFFERS_KEY = 'hifai_marketplace_offers';
 
-export const MAX_P2P_TRANSFER_RADIUS_KM = 1.0;
+export const MAX_P2P_TRANSFER_RADIUS_KM = 5.0;
 
 /**
  * Calculates distance in km between two GPS coordinates using the Haversine formula.
@@ -138,10 +138,10 @@ export const INITIAL_OFFERS = [
     seller_role: 'producer',
     seller_location: 'Madurai Highway Substation 9',
     seller_city: 'Outer District',
-    lat: 10.4023,
-    lon: 78.0153,
-    distance_value: 4.8,
-    distance_km: '4.8 km (Exceeds 1.0 km Limit)',
+    lat: 10.4323,
+    lon: 78.0453,
+    distance_value: 7.5,
+    distance_km: '7.5 km (Exceeds 5.0 km Limit)',
     energy_source: 'Solar',
     energy_kwh: 18.5,
     remaining_kwh: 18.5,
@@ -389,10 +389,10 @@ function getLocalOffers() {
       seller_role: 'producer',
       seller_location: 'Outer District Substation 9',
       seller_city: 'Outer District',
-      lat: parseFloat((userLat + 0.0350).toFixed(4)),
-      lon: parseFloat((userLon + 0.0350).toFixed(4)),
-      distance_value: 4.8,
-      distance_km: '4.8 km (Exceeds 1.0 km Limit)',
+      lat: parseFloat((userLat + 0.0550).toFixed(4)),
+      lon: parseFloat((userLon + 0.0550).toFixed(4)),
+      distance_value: 7.5,
+      distance_km: '7.5 km (Exceeds 5.0 km Limit)',
       energy_source: 'Solar',
       energy_kwh: 18.5,
       remaining_kwh: 18.5,
@@ -731,7 +731,7 @@ export async function createEnergyOffer(offerData) {
     lat: offerData.lat || 10.3673,
     lon: offerData.lon || 77.9803,
     distance_value: offerData.distance_value || 0.4,
-    distance_km: '0.4 km (Within 1.0 km Radius)',
+    distance_km: '0.4 km (Within 5.0 km Radius)',
     energy_source: offerData.energy_source || 'Solar',
     energy_kwh: requestedKwh,
     remaining_kwh: requestedKwh,
@@ -831,7 +831,7 @@ export async function purchaseEnergy(
   buyerProfile = null,
   paymentDetails = {}
 ) {
-  // STRICT 1.0 KM RADIUS VALIDATION CHECK
+  // STRICT 5.0 KM RADIUS VALIDATION CHECK
   const dist = calculatedDistanceKm !== null
     ? calculatedDistanceKm
     : parseFloat(offerObj?.distance_value ?? (offerObj?.distance_km ? parseFloat(offerObj.distance_km) : 0.5));
@@ -840,7 +840,7 @@ export async function purchaseEnergy(
     throw new Error(
       `🚫 Peer-to-Peer Energy Transfer Restricted! The producer is located ${dist.toFixed(
         1
-      )} km away. Peer-to-peer electricity transfer is ONLY permitted within a 1.0 km microgrid radius for line-loss and voltage stability!`
+      )} km away. Peer-to-peer electricity transfer is ONLY permitted within a 5.0 km microgrid radius for line-loss and voltage stability!`
     );
   }
 

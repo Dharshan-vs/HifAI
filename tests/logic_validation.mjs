@@ -107,21 +107,21 @@ async function runTests() {
   assert(userAInverters.length === 1 && userAInverters[0].model === 'Inverter-A', 'User A has their registered inverter');
   assert(userBInverters.length === 0, 'User B has 0 inverters isolated from User A');
 
-  // --- TEST GROUP 3: 1.0 km Microgrid Distance & Calculations ---
+  // --- TEST GROUP 3: 5.0 km Microgrid Distance & Calculations ---
   console.log('\n📌 Test Group 3: Microgrid Distance Rules & P2P Constraints');
   const dWithin = calculateDistanceKm(13.0827, 80.2707, 13.0850, 80.2730);
-  assert(dWithin <= 1.0, `Within 1km distance check (Calculated: ${dWithin} km <= 1.0 km)`);
+  assert(dWithin <= 5.0, `Within 5km distance check (Calculated: ${dWithin} km <= 5.0 km)`);
 
-  const dOutside = calculateDistanceKm(13.0827, 80.2707, 13.1100, 80.3100);
-  assert(dOutside > 1.0, `Outside 1km distance check (Calculated: ${dOutside} km > 1.0 km)`);
+  const dOutside = calculateDistanceKm(13.0827, 80.2707, 13.1500, 80.3500);
+  assert(dOutside > 5.0, `Outside 5km distance check (Calculated: ${dOutside} km > 5.0 km)`);
 
   let distanceBlocked = false;
   try {
-    await purchaseEnergy('OFFER-TEST', 5, { seller_name: 'Far Producer' }, 2.5);
+    await purchaseEnergy('OFFER-TEST', 5, { seller_name: 'Far Producer' }, 6.5);
   } catch (err) {
-    if (err.message.includes('1.0 km')) distanceBlocked = true;
+    if (err.message.includes('5.0 km')) distanceBlocked = true;
   }
-  assert(distanceBlocked, 'Purchase exceeds 1.0 km radius is strictly rejected');
+  assert(distanceBlocked, 'Purchase exceeds 5.0 km radius is strictly rejected');
 
   // --- TEST GROUP 4: Dynamic Buyer Attribution in Purchase ---
   console.log('\n📌 Test Group 4: Dynamic Buyer Attribution in Marketplace');

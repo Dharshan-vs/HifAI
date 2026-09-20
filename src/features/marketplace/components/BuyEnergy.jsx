@@ -142,7 +142,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
   const [selectedSource, setSelectedSource] = useState('all'); // Dynamic based on loaded offers
   const [priceRange, setPriceRange] = useState('all'); // 'all' | 'under_6' | 'under_8' | '8_to_10' | 'above_10'
   const [minKwhFilter, setMinKwhFilter] = useState('all'); // 'all' | '5' | '10' | '20' | '50'
-  const [locationFilter, setLocationFilter] = useState('within_1km'); // 'within_1km' | 'all'
+  const [locationFilter, setLocationFilter] = useState('within_5km'); // 'within_5km' | 'all'
   const [sortBy, setSortBy] = useState('proximity'); // 'proximity' | 'price_asc' | 'price_desc' | 'kwh_desc'
 
   const loadOffers = useCallback(async () => {
@@ -270,7 +270,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
         const distVal = getLiveDistanceKm(offer);
 
         // 1. Distance / Microgrid constraint
-        if (locationFilter === 'within_1km' && distVal > MAX_P2P_TRANSFER_RADIUS_KM) {
+        if (locationFilter === 'within_5km' && distVal > MAX_P2P_TRANSFER_RADIUS_KM) {
           return false;
         }
 
@@ -347,7 +347,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
     selectedSource !== 'all' ||
     priceRange !== 'all' ||
     minKwhFilter !== 'all' ||
-    locationFilter !== 'within_1km' ||
+    locationFilter !== 'within_5km' ||
     sortBy !== 'proximity';
 
   // Clear all filters handler
@@ -356,7 +356,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
     setSelectedSource('all');
     setPriceRange('all');
     setMinKwhFilter('all');
-    setLocationFilter('within_1km');
+    setLocationFilter('within_5km');
     setSortBy('proximity');
   };
 
@@ -368,7 +368,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
       toast.error(
         `🚫 Energy Transfer Restricted: Producer is ${distVal.toFixed(
           2
-        )} km away from your Smart Meter location (${consumerLocation.address}). Peer-to-peer electricity transfer is ONLY permitted within a 1.0 km microgrid radius!`
+        )} km away from your Smart Meter location (${consumerLocation.address}). Peer-to-peer electricity transfer is ONLY permitted within a 5.0 km microgrid radius!`
       );
       return;
     }
@@ -405,7 +405,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
       toast.error(
         `🚫 Transfer Blocked: Producer is ${distVal.toFixed(
           2
-        )} km away from your Smart Meter (${consumerLocation.address}). Strict 1.0 km microgrid radius limit applies.`
+        )} km away from your Smart Meter (${consumerLocation.address}). Strict 5.0 km microgrid radius limit applies.`
       );
       return;
     }
@@ -536,7 +536,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
             <ShoppingBag className="w-5 h-5 text-emerald-600" /> Available Energy Listings
           </h2>
           <p className="text-xs text-text-secondary mt-0.5">
-            Browse verified peer-to-peer renewable energy offers available in your local microgrid (&le; 1.0 km of your Smart Meter).
+            Browse verified peer-to-peer renewable energy offers available in your local microgrid (&le; 5.0 km of your Smart Meter).
           </p>
         </div>
         <Button
@@ -679,7 +679,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
               onChange={(e) => setLocationFilter(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs font-semibold text-navy focus:outline-none focus:border-primary cursor-pointer transition-colors"
             >
-              <option value="within_1km">⚡ &le; 1.0 km (Eligible for Transfer)</option>
+              <option value="within_5km">⚡ &le; 5.0 km (Eligible for Transfer)</option>
               <option value="all">📍 All Listings (Show All)</option>
             </select>
           </div>
@@ -751,7 +751,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
             {locationFilter === 'all' && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-200 text-slate-700 rounded-full text-[11px] font-bold border border-slate-300">
                 All Distances
-                <button onClick={() => setLocationFilter('within_1km')} className="hover:opacity-75" title="Reset to ≤ 1.0 km">
+                <button onClick={() => setLocationFilter('within_5km')} className="hover:opacity-75" title="Reset to ≤ 5.0 km">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -841,7 +841,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
             const remaining = parseFloat(offer.remaining_kwh || 0).toFixed(1);
             const totalListed = parseFloat(offer.energy_kwh || offer.remaining_kwh || 0).toFixed(1);
             const distVal = getLiveDistanceKm(offer);
-            const isWithin1km = distVal <= MAX_P2P_TRANSFER_RADIUS_KM;
+            const isWithin5km = distVal <= MAX_P2P_TRANSFER_RADIUS_KM;
             const validityText = formatValidityWindow(offer.available_from, offer.available_until);
 
             const isOwnOffer =
@@ -854,7 +854,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                 whileHover={{ y: -6, scale: 1.012 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 className={`glass-card rounded-2xl border transition-all duration-300 flex flex-col justify-between p-5 space-y-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(16,185,129,0.12)] ${
-                  isWithin1km
+                  isWithin5km
                     ? 'border-white/80 hover:border-emerald-500/50'
                     : 'border-amber-500/30 bg-amber-50/30'
                 }`}
@@ -871,12 +871,12 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
 
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                        isWithin1km
+                        isWithin5km
                           ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
                           : 'bg-amber-500/15 text-amber-700 border border-amber-500/30'
                       }`}
                     >
-                      {isWithin1km ? 'ACTIVE' : 'OUT OF RANGE'}
+                      {isWithin5km ? 'ACTIVE' : 'OUT OF RANGE'}
                     </span>
                   </div>
 
@@ -936,7 +936,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                       </span>
                       <span
                         className={`text-[11px] font-mono font-bold shrink-0 ${
-                          isWithin1km ? 'text-emerald-600' : 'text-amber-600'
+                          isWithin5km ? 'text-emerald-600' : 'text-amber-600'
                         }`}
                       >
                         {distVal.toFixed(1)} km away
@@ -947,8 +947,8 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" /> {validityText}
                       </span>
-                      <span className={isWithin1km ? 'text-emerald-600 font-semibold' : 'text-amber-600 font-semibold'}>
-                        {isWithin1km ? 'Eligible for Transfer' : 'Line Loss Limit (> 1.0 km)'}
+                      <span className={isWithin5km ? 'text-emerald-600 font-semibold' : 'text-amber-600 font-semibold'}>
+                        {isWithin5km ? 'Eligible for Transfer' : 'Line Loss Limit (> 5.0 km)'}
                       </span>
                     </div>
                   </div>
@@ -977,15 +977,15 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                   ) : (
                     <Button
                       onClick={() => handleOpenBuyModal(offer)}
-                      disabled={!isWithin1km}
-                      variant={isWithin1km ? 'primary' : 'outline'}
+                      disabled={!isWithin5km}
+                      variant={isWithin5km ? 'primary' : 'outline'}
                       size="sm"
                       className={`w-full text-xs font-bold flex items-center justify-center gap-1 ${
-                        !isWithin1km ? 'text-text-secondary opacity-60 cursor-not-allowed' : ''
+                        !isWithin5km ? 'text-text-secondary opacity-60 cursor-not-allowed' : ''
                       }`}
                     >
                       <Zap className="w-3.5 h-3.5" />
-                      <span>{isWithin1km ? 'Buy Energy' : 'Out of Range'}</span>
+                      <span>{isWithin5km ? 'Buy Energy' : 'Out of Range (> 5.0 km)'}</span>
                     </Button>
                   )}
                 </div>
@@ -1005,7 +1005,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
       >
         {detailOffer && (() => {
           const detailDistVal = getLiveDistanceKm(detailOffer);
-          const detailIsWithin1km = detailDistVal <= MAX_P2P_TRANSFER_RADIUS_KM;
+          const detailIsWithin5km = detailDistVal <= MAX_P2P_TRANSFER_RADIUS_KM;
 
           return (
             <div className="space-y-5 pt-1">
@@ -1021,14 +1021,14 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                 </div>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                    detailIsWithin1km
+                    detailIsWithin5km
                       ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
                       : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
                   }`}
                 >
-                  {detailIsWithin1km
+                  {detailIsWithin5km
                     ? 'Active & Transfer Eligible'
-                    : 'Restricted (> 1.0 km)'}
+                    : 'Restricted (> 5.0 km)'}
                 </span>
               </div>
 
@@ -1058,8 +1058,8 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                     <Zap className="w-3.5 h-3.5 text-emerald-600" />
                     Microgrid Distance Verification:
                   </span>
-                  <span className={`font-mono font-extrabold ${detailIsWithin1km ? 'text-emerald-700' : 'text-rose-600'}`}>
-                    {detailDistVal.toFixed(2)} km {detailIsWithin1km ? '(≤ 1.0 km Limit ✅)' : '(Exceeds 1.0 km Limit ❌)'}
+                  <span className={`font-mono font-extrabold ${detailIsWithin5km ? 'text-emerald-700' : 'text-rose-600'}`}>
+                    {detailDistVal.toFixed(2)} km {detailIsWithin5km ? '(≤ 5.0 km Limit ✅)' : '(Exceeds 5.0 km Limit ❌)'}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
@@ -1175,10 +1175,10 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                   </div>
                   <div className="text-right">
                     <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-800 rounded text-[10px] font-bold block">
-                      {detailIsWithin1km ? 'Zero Line Loss Surcharge' : 'Distance Limit Exceeded'}
+                      {detailIsWithin5km ? 'Zero Line Loss Surcharge' : 'Distance Limit Exceeded'}
                     </span>
                     <span className="text-[10px] text-emerald-600 mt-0.5 block">
-                      {detailIsWithin1km ? 'Direct Microgrid Transfer' : 'Transfer Blocked (> 1.0 km)'}
+                      {detailIsWithin5km ? 'Direct Microgrid Transfer' : 'Transfer Blocked (> 5.0 km)'}
                     </span>
                   </div>
                 </div>
@@ -1193,15 +1193,15 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                     <Button
                       type="submit"
                       loading={buying}
-                      disabled={buying || !detailIsWithin1km}
+                      disabled={buying || !detailIsWithin5km}
                       variant="primary"
                       className="flex items-center gap-1.5"
                     >
                       <Zap className="w-4 h-4" />
                       <span>
-                        {detailIsWithin1km
+                        {detailIsWithin5km
                           ? 'Confirm Purchase'
-                          : 'Restricted (> 1.0 km)'}
+                          : 'Restricted (> 5.0 km)'}
                       </span>
                     </Button>
                   )}
@@ -1222,7 +1222,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
       >
         {selectedOfferForBuy && (() => {
           const directDistVal = getLiveDistanceKm(selectedOfferForBuy);
-          const directIsWithin1km = directDistVal <= MAX_P2P_TRANSFER_RADIUS_KM;
+          const directIsWithin5km = directDistVal <= MAX_P2P_TRANSFER_RADIUS_KM;
 
           return (
             <form onSubmit={handleConfirmDirectPurchase} className="space-y-4 pt-1">
@@ -1251,8 +1251,8 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-text-secondary">Distance:</span>
-                  <span className={`font-mono font-bold ${directIsWithin1km ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {directDistVal.toFixed(2)} km {directIsWithin1km ? '(Within 1.0 km Limit ✅)' : '(Exceeds 1.0 km Limit ❌)'}
+                  <span className={`font-mono font-bold ${directIsWithin5km ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {directDistVal.toFixed(2)} km {directIsWithin5km ? '(Within 5.0 km Limit ✅)' : '(Exceeds 5.0 km Limit ❌)'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -1309,8 +1309,8 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                     ₹{directEstimatedTotal}
                   </span>
                 </div>
-                <span className={`px-2.5 py-1 rounded-lg font-bold text-[11px] ${directIsWithin1km ? 'bg-emerald-500/20 text-emerald-700' : 'bg-rose-500/20 text-rose-700'}`}>
-                  {directIsWithin1km ? '1.0 km Microgrid Transfer' : 'Exceeds 1.0 km Limit'}
+                <span className={`px-2.5 py-1 rounded-lg font-bold text-[11px] ${directIsWithin5km ? 'bg-emerald-500/20 text-emerald-700' : 'bg-rose-500/20 text-rose-700'}`}>
+                  {directIsWithin5km ? '5.0 km Microgrid Transfer' : 'Exceeds 5.0 km Limit'}
                 </span>
               </div>
 
@@ -1321,7 +1321,7 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
                 <Button
                   type="submit"
                   loading={buying}
-                  disabled={buying || !directIsWithin1km}
+                  disabled={buying || !directIsWithin5km}
                   variant="primary"
                   className="flex items-center gap-1.5"
                 >

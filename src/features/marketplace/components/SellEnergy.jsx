@@ -447,7 +447,7 @@ export default function SellEnergy({ onOfferCreated }) {
                         {smartMeters[0]?.location || producerMapLoc.address}
                       </p>
                       <p className="text-[10px] font-mono text-emerald-700">
-                        GPS: {smartMeters[0]?.lat || producerMapLoc.lat}, {smartMeters[0]?.lon || producerMapLoc.lon} • Fixed 1.0 km Microgrid Transfer Radius
+                        GPS: {smartMeters[0]?.lat || producerMapLoc.lat}, {smartMeters[0]?.lon || producerMapLoc.lon} • Fixed 5.0 km Microgrid Transfer Radius
                       </p>
                     </div>
                   </div>
