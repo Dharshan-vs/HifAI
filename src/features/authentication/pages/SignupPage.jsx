@@ -61,10 +61,12 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignUp = async () => {
-    const result = await googleSignIn();
+    const selectedRole = watch('role') || initialRole || USER_ROLES.CONSUMER;
+    const result = await googleSignIn(selectedRole);
     if (result.success) {
-      toast.success('Account created with Google!');
-      navigate(ROUTES.DASHBOARD);
+      const targetRole = result.userProfile?.role || selectedRole;
+      toast.success(`Account created with Google! Welcome to the ${targetRole.toUpperCase()} Portal.`);
+      navigate(getRoleDashboardRoute(targetRole));
     } else {
       toast.error(result.error);
     }

@@ -173,13 +173,34 @@ export default function BuyEnergy({ onPurchaseSuccess }) {
         }
       } catch {}
     }
+
     loadSmartMeterLocation();
-  }, [user?.uid]);
+
+    const handleSmartMeterUpdate = () => {
+      loadSmartMeterLocation();
+      loadOffers();
+    };
+
+    window.addEventListener('smart-meter-updated', handleSmartMeterUpdate);
+    window.addEventListener('storage', handleSmartMeterUpdate);
+
+    return () => {
+      window.removeEventListener('smart-meter-updated', handleSmartMeterUpdate);
+      window.removeEventListener('storage', handleSmartMeterUpdate);
+    };
+  }, [user?.uid, loadOffers]);
 
   // Helper to calculate real-time Haversine distance between Smart Meter location and Producer offer
   const getLiveDistanceKm = useCallback(
     (offer) => {
-      if (offer?.distance_value !== undefined && offer.distance_value <= MAX_P2P_TRANSFER_RADIUS_KM && !offer.lat) {
+      if (!offer) return 0.5;
+
+      const isSeed =
+        offer.is_seed ||
+        String(offer.id).startsWith('OFFER-LOCAL-') ||
+        ['PROD-001', 'PROD-002', 'PROD-003', 'PROD-004', 'PROD-005'].includes(String(offer.seller_id));
+
+      if (isSeed && offer.distance_value !== undefined) {
         return parseFloat(Number(offer.distance_value).toFixed(2));
       }
 

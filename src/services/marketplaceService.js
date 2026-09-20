@@ -246,6 +246,15 @@ export function isOfferCompletedOrDepleted(offer) {
   );
 }
 
+export const SEED_OFFER_IDS = [
+  'OFFER-LOCAL-101',
+  'OFFER-LOCAL-102',
+  'OFFER-LOCAL-103',
+  'OFFER-LOCAL-104',
+  'OFFER-LOCAL-105',
+  'OFFER-LOCAL-106',
+];
+
 function getLocalOffers() {
   let userLat = 10.3673;
   let userLon = 77.9803;
@@ -260,7 +269,9 @@ function getLocalOffers() {
       if (parsed.lat && parsed.lon) {
         userLat = parseFloat(parsed.lat);
         userLon = parseFloat(parsed.lon);
-        userArea = parsed.address ? parsed.address.split(',')[0].trim() : 'Dindigul';
+        userArea = parsed.address
+          ? parsed.address.split(',')[0].trim()
+          : localStorage.getItem('hifai_user_city') || 'Dindigul';
       }
     }
   } catch {}
@@ -284,6 +295,7 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 12 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date().toISOString(),
     },
     {
@@ -304,6 +316,7 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 18 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date(Date.now() - 3600000).toISOString(),
     },
     {
@@ -324,6 +337,7 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date(Date.now() - 7200000).toISOString(),
     },
     {
@@ -344,6 +358,7 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date(Date.now() - 10800000).toISOString(),
     },
     {
@@ -364,6 +379,7 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 10 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date(Date.now() - 14400000).toISOString(),
     },
     {
@@ -384,29 +400,36 @@ function getLocalOffers() {
       available_from: new Date().toISOString(),
       available_until: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
       status: 'active',
+      is_seed: true,
       created_at: new Date(Date.now() - 18000000).toISOString(),
     },
   ];
 
+  let userCreatedOffers = [];
   try {
     const raw = localStorage.getItem(LOCAL_OFFERS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.filter((o) => !isOfferCompletedOrDepleted(o));
+      if (Array.isArray(parsed)) {
+        userCreatedOffers = parsed.filter(
+          (o) => o && !SEED_OFFER_IDS.includes(String(o.id)) && !o.is_seed
+        );
       }
     }
   } catch {}
 
   const activeInitial = dynamicInitialOffers.filter((o) => !isOfferCompletedOrDepleted(o));
-  saveLocalOffers(activeInitial);
-  return activeInitial;
+  const activeUserCreated = userCreatedOffers.filter((o) => !isOfferCompletedOrDepleted(o));
+
+  return [...activeUserCreated, ...activeInitial];
 }
 
 function saveLocalOffers(offers) {
   try {
-    const activeOnly = (offers || []).filter((o) => !isOfferCompletedOrDepleted(o));
-    localStorage.setItem(LOCAL_OFFERS_KEY, JSON.stringify(activeOnly));
+    const userOffersOnly = (offers || []).filter(
+      (o) => o && !SEED_OFFER_IDS.includes(String(o.id)) && !o.is_seed && !isOfferCompletedOrDepleted(o)
+    );
+    localStorage.setItem(LOCAL_OFFERS_KEY, JSON.stringify(userOffersOnly));
   } catch (e) {
     console.error('LocalStorage save offers error:', e);
   }

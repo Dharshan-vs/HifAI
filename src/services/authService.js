@@ -63,6 +63,43 @@ function isDevOrFallbackError(error) {
   );
 }
 
+const EMAIL_ROLE_REGISTRY_KEY = 'yuga_email_role_locks';
+
+export function getEmailRegisteredRole(email) {
+  if (!email) return null;
+  const cleanEmail = email.trim().toLowerCase();
+  try {
+    const raw = localStorage.getItem(EMAIL_ROLE_REGISTRY_KEY);
+    if (raw) {
+      const registry = JSON.parse(raw);
+      if (registry && registry[cleanEmail]) {
+        return registry[cleanEmail];
+      }
+    }
+  } catch {}
+
+  // Check demo users / predefined accounts
+  if (cleanEmail === 'producer@yuga.energy') return 'producer';
+  if (cleanEmail === 'consumer@yuga.energy') return 'consumer';
+  if (cleanEmail === 'admin@yuga.energy') return 'admin';
+  if (cleanEmail === 'business@yuga.energy') return 'business';
+
+  return null;
+}
+
+export function saveEmailRegisteredRole(email, role) {
+  if (!email || !role) return;
+  const cleanEmail = email.trim().toLowerCase();
+  try {
+    const raw = localStorage.getItem(EMAIL_ROLE_REGISTRY_KEY);
+    const registry = raw ? JSON.parse(raw) : {};
+    registry[cleanEmail] = role.toLowerCase();
+    localStorage.setItem(EMAIL_ROLE_REGISTRY_KEY, JSON.stringify(registry));
+  } catch (e) {
+    console.warn('Could not save email role lock:', e);
+  }
+}
+
 export async function ensureUserProfile(user, extraData = {}) {
   try {
     const res = await fetchWithAuth('/auth/sync-user', {
@@ -90,6 +127,15 @@ export async function ensureUserProfile(user, extraData = {}) {
 }
 
 export async function registerUser({ email, password, fullName, phone, role = 'consumer' }) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const existingRole = getEmailRegisteredRole(cleanEmail);
+
+  if (existingRole && existingRole.toLowerCase() !== role.toLowerCase()) {
+    throw new Error(
+      `❌ Access Denied: The email "${email}" is already registered as a ${existingRole.toUpperCase()}. An email cannot be registered for both Producer and Consumer roles!`
+    );
+  }
+
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const { user } = userCredential;
@@ -97,10 +143,13 @@ export async function registerUser({ email, password, fullName, phone, role = 'c
     await updateProfile(user, { displayName: fullName }).catch(() => {});
     await sendEmailVerification(user).catch(() => {});
 
+    saveEmailRegisteredRole(cleanEmail, role);
+
     const userData = await ensureUserProfile(user, { fullName, phone, role });
     return { user, userData };
   } catch (error) {
     if (isDevOrFallbackError(error)) {
+      saveEmailRegisteredRole(cleanEmail, role);
       const name = fullName || (email ? email.split('@')[0].replace(/[._]/g, ' ') : 'YUGA Member');
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
       const demoUser = {
@@ -128,12 +177,25 @@ export async function registerUser({ email, password, fullName, phone, role = 'c
 }
 
 export async function loginUser(email, password, role) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const existingRole = getEmailRegisteredRole(cleanEmail);
+
+  if (existingRole && role && existingRole.toLowerCase() !== role.toLowerCase()) {
+    throw new Error(
+      `❌ Access Denied: This email "${email}" is permanently registered as a ${existingRole.toUpperCase()}. You cannot sign in to the ${role.toUpperCase()} portal with this email. Please select the ${existingRole.toUpperCase()} portal.`
+    );
+  }
+
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const { user } = userCredential;
 
     await reload(user).catch(() => {});
-    const profile = await ensureUserProfile(auth.currentUser || user, role ? { role } : {});
+
+    const finalRole = existingRole || role || 'consumer';
+    saveEmailRegisteredRole(cleanEmail, finalRole);
+
+    const profile = await ensureUserProfile(auth.currentUser || user, { role: finalRole });
 
     return { user: auth.currentUser || user, userProfile: profile, mfaRequired: false };
   } catch (error) {
@@ -142,6 +204,9 @@ export async function loginUser(email, password, role) {
       return { mfaRequired: true, resolver };
     }
     if (isDevOrFallbackError(error)) {
+      const finalRole = existingRole || role || 'consumer';
+      saveEmailRegisteredRole(cleanEmail, finalRole);
+
       const name = email ? email.split('@')[0].replace(/[._]/g, ' ') : 'Demo User';
       const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
       const demoUser = {
@@ -157,7 +222,7 @@ export async function loginUser(email, password, role) {
         name: formattedName,
         email: email || 'demo@yuga.energy',
         phone: '+1 555-0199',
-        role: role || 'consumer',
+        role: finalRole,
         profile_image: '',
       };
       localStorage.setItem('yuga_demo_user', JSON.stringify(demoUser));
@@ -285,12 +350,24 @@ export async function signInWithGoogle(role = 'consumer') {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const { user } = result;
+    const cleanEmail = (user.email || '').trim().toLowerCase();
+    const existingRole = getEmailRegisteredRole(cleanEmail);
+
+    if (existingRole && role && existingRole.toLowerCase() !== role.toLowerCase()) {
+      await signOut(auth).catch(() => {});
+      throw new Error(
+        `❌ Role Conflict: Your Google account (${user.email}) is registered as a ${existingRole.toUpperCase()}. You cannot sign in to the ${role.toUpperCase()} portal with this account. Please select the ${existingRole.toUpperCase()} portal.`
+      );
+    }
+
+    const finalRole = existingRole || role || 'consumer';
+    saveEmailRegisteredRole(cleanEmail, finalRole);
 
     const profile = await ensureUserProfile(user, {
       fullName: user.displayName || '',
       email: user.email || '',
       photoURL: user.photoURL || '',
-      role,
+      role: finalRole,
     });
 
     return { user, profile };
@@ -303,9 +380,20 @@ export async function signInWithGoogle(role = 'consumer') {
       error?.code === 'auth/popup-closed-by-user' ||
       error?.code === 'auth/cancelled-popup-request'
     ) {
+      const demoEmail = 'demo.user@yuga.energy';
+      const existingRole = getEmailRegisteredRole(demoEmail);
+      if (existingRole && role && existingRole.toLowerCase() !== role.toLowerCase()) {
+        throw new Error(
+          `❌ Role Conflict: Your Google account (${demoEmail}) is registered as a ${existingRole.toUpperCase()}. Please select the ${existingRole.toUpperCase()} portal to sign in.`
+        );
+      }
+
+      const finalRole = existingRole || role || 'consumer';
+      saveEmailRegisteredRole(demoEmail, finalRole);
+
       const demoUser = {
         uid: 'google_demo_user',
-        email: 'demo.user@yuga.energy',
+        email: demoEmail,
         displayName: 'Demo Google User',
         emailVerified: true,
       };
@@ -313,9 +401,9 @@ export async function signInWithGoogle(role = 'consumer') {
         id: 2,
         firebase_uid: demoUser.uid,
         name: 'Demo Google User',
-        email: 'demo.user@yuga.energy',
+        email: demoEmail,
         phone: '+1 555-0144',
-        role: role || 'consumer',
+        role: finalRole,
         profile_image: '',
       };
       localStorage.setItem('yuga_demo_user', JSON.stringify(demoUser));

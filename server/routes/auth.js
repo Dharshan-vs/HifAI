@@ -4,6 +4,22 @@ import { query } from '../db/index.js';
 
 const router = express.Router();
 
+// POST /api/auth/check-email-role
+router.post('/check-email-role', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    const dbRes = await query('SELECT role, email FROM users WHERE LOWER(email) = LOWER($1)', [email.trim()]);
+    if (dbRes.rows.length > 0) {
+      return res.json({ exists: true, role: dbRes.rows[0].role });
+    }
+    return res.json({ exists: false, role: null });
+  } catch (error) {
+    console.error('Error checking email role:', error);
+    res.status(500).json({ error: 'Database check error' });
+  }
+});
+
 // POST /api/auth/sync-user
 router.post('/sync-user', verifyToken, async (req, res) => {
   try {
@@ -21,7 +37,7 @@ router.post('/sync-user', verifyToken, async (req, res) => {
        SET name = EXCLUDED.name,
            email = COALESCE(EXCLUDED.email, users.email),
            phone = CASE WHEN EXCLUDED.phone <> '' THEN EXCLUDED.phone ELSE users.phone END,
-           role = COALESCE($6, users.role),
+           role = COALESCE(users.role, $6),
            updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
       [uid, email || '', finalName, finalPhone, picture || '', finalRole]

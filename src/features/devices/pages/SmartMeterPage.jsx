@@ -80,6 +80,7 @@ export default function SmartMeterPage() {
     setActionLoading(false);
     setIsRegisterOpen(false);
     setEditingMeter(null);
+    window.dispatchEvent(new Event('smart-meter-updated'));
     loadData();
   };
 
