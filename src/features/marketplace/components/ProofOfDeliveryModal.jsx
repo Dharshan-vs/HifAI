@@ -99,7 +99,9 @@ export default function ProofOfDeliveryModal({ isOpen, onClose, proofData }) {
           <div className="p-3 bg-surface border border-border rounded-xl space-y-1">
             <span className="text-[10px] uppercase font-bold text-text-secondary">Financial Settlement</span>
             <div className="text-base font-extrabold text-navy font-mono">₹{totalCost}</div>
-            <span className="text-[10px] text-emerald-600 font-semibold">Settled via Wallet</span>
+            <span className="text-[10px] text-emerald-600 font-semibold block truncate">
+              Credited to {proofData.seller_bank_name || 'HDFC Bank'} ({proofData.seller_bank_account ? (proofData.seller_bank_account.startsWith('••••') ? proofData.seller_bank_account : '•••• ' + String(proofData.seller_bank_account).slice(-4)) : '•••• 9283'})
+            </span>
           </div>
           <div className="p-3 bg-surface border border-border rounded-xl space-y-1">
             <span className="text-[10px] uppercase font-bold text-text-secondary">Environmental Impact</span>

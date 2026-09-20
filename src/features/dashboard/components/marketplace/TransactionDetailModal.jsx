@@ -22,6 +22,9 @@ import {
   Star,
   MessageSquare,
   Sparkles,
+  Building2,
+  CreditCard,
+  Smartphone,
 } from 'lucide-react';
 import TransactionStatusBadge from './TransactionStatusBadge';
 import CancelOrderModal from './CancelOrderModal';
@@ -323,6 +326,50 @@ export default function TransactionDetailModal({ transaction, isOpen, onClose, o
                     })
                   : 'Just now'}
               </span>
+            </div>
+
+            {/* Direct P2P Banking & Razorpay Settlement Details */}
+            <div className="p-3.5 bg-gradient-to-r from-blue-500/5 via-indigo-500/5 to-emerald-500/10 border border-blue-500/25 rounded-2xl space-y-2.5 text-xs">
+              <div className="flex items-center justify-between border-b border-blue-500/20 pb-2">
+                <span className="font-bold text-navy flex items-center gap-1.5 text-[11px]">
+                  <Building2 className="w-4 h-4 text-blue-600" /> Direct P2P Banking &amp; Escrow Settlement
+                </span>
+                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-800 rounded-md text-[10px] font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Synchronized
+                </span>
+              </div>
+
+              {/* 2-Column Split: Consumer Payment Source & Producer Beneficiary Payout */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                {/* Consumer Payment Method */}
+                <div className="p-2.5 bg-surface rounded-xl border border-border/70 space-y-1">
+                  <span className="text-text-secondary text-[10px] uppercase font-bold flex items-center gap-1">
+                    <CreditCard className="w-3 h-3 text-blue-600" /> Buyer Payment Source
+                  </span>
+                  <span className="font-semibold text-navy block truncate">
+                    {transaction.payment_method || 'Razorpay UPI / NetBanking'}
+                  </span>
+                  <span className="font-mono text-[10px] text-text-secondary block truncate">
+                    Ref: {transaction.payment_id || transaction.razorpay_payment_id || `PAY-${transaction.id}`}
+                  </span>
+                </div>
+
+                {/* Producer Beneficiary Bank Destination */}
+                <div className="p-2.5 bg-surface rounded-xl border border-border/70 space-y-1">
+                  <span className="text-text-secondary text-[10px] uppercase font-bold flex items-center gap-1">
+                    <Building2 className="w-3 h-3 text-emerald-600" /> Producer Beneficiary Payout
+                  </span>
+                  <span className="font-bold text-navy block truncate">
+                    {transaction.seller_bank_name || 'HDFC Bank'}{' '}
+                    <span className="font-mono text-[10px] font-normal text-text-secondary">
+                      ({transaction.seller_bank_account ? (transaction.seller_bank_account.startsWith('••••') ? transaction.seller_bank_account : '•••• •••• ' + String(transaction.seller_bank_account).slice(-4)) : '•••• •••• 9283'})
+                    </span>
+                  </span>
+                  <span className="font-mono text-[10px] text-emerald-700 font-bold block truncate">
+                    UPI: {transaction.seller_upi_id || 'producer.solar@okhdfcbank'} • IFSC: {transaction.seller_ifsc || 'HDFC0001089'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Blockchain Permanent Ledger Record */}

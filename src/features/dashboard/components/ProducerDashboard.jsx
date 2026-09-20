@@ -15,6 +15,8 @@ import {
   BatteryCharging,
   Gauge,
   MapPin,
+  Building2,
+  CheckCircle2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Card, { CardHeader, CardTitle, CardContent } from '../../../components/common/Card';
@@ -30,7 +32,7 @@ import {
   saveUserBatteryCapacity,
   deleteEnergyOffer,
 } from '../../../services/marketplaceService';
-import { fetchWalletSummary } from '../../../services/walletService';
+import { fetchWalletSummary, getUserBankDetails, saveUserBankDetails } from '../../../services/walletService';
 import { fetchEnergySystems, addEnergySystem } from '../../../services/systemsService';
 import { fetchSmartMeters } from '../../../services/smartMeterService';
 import { ROUTES } from '../../../utils/constants';
@@ -44,6 +46,16 @@ export default function ProducerDashboard({ userProfile }) {
   const [postingOffer, setPostingOffer] = useState(false);
   const [showBatteryModal, setShowBatteryModal] = useState(false);
   const [customBatteryCapacity, setCustomBatteryCapacity] = useState('150.0');
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankDetails, setBankDetails] = useState({
+    accountHolder: 'Solar Energy Producer',
+    bankName: 'HDFC Bank',
+    accountNumber: '50100492819283',
+    maskedAccount: '•••• •••• 9283',
+    ifsc: 'HDFC0001089',
+    branch: 'Dindigul Microgrid Branch',
+    upiId: 'producer.solar@okhdfcbank',
+  });
 
   const [transactions, setTransactions] = useState([]);
   const [wallet, setWallet] = useState(null);
@@ -71,6 +83,10 @@ export default function ProducerDashboard({ userProfile }) {
       setWallet(walletData);
       setEnergyQuota(quota);
       setCustomBatteryCapacity(String(quota.totalCapacityKwh || 150.0));
+
+      const bDetails = getUserBankDetails(userProfile?.uid || 'guest', userProfile?.fullName || 'Solar Energy Producer');
+      setBankDetails(bDetails);
+
       if (metersList && metersList.length > 0) {
         setSmartMeter(metersList[0]);
       }
@@ -93,6 +109,18 @@ export default function ProducerDashboard({ userProfile }) {
   const totalRevenueEarned = transactions.reduce((acc, tx) => acc + (parseFloat(tx.price) || 0), 0);
   const initialBatteryStored = energyQuota?.totalCapacityKwh || 150.0;
   const currentBatteryBalance = energyQuota?.currentBatteryBalanceKwh ?? Math.max(0, initialBatteryStored - totalSoldKwh);
+
+  const handleUpdateBankDetails = (e) => {
+    e.preventDefault();
+    if (!bankDetails.bankName || !bankDetails.accountNumber || !bankDetails.ifsc) {
+      toast.error('Please enter valid bank name, account number, and IFSC code');
+      return;
+    }
+    const saved = saveUserBankDetails(userProfile?.uid || 'guest', bankDetails);
+    setBankDetails(saved);
+    toast.success('⚡ Producer Bank & UPI Payout Settings updated successfully!');
+    setShowBankModal(false);
+  };
 
   const handleUpdateBatteryCapacity = (e) => {
     e.preventDefault();
@@ -303,6 +331,53 @@ export default function ProducerDashboard({ userProfile }) {
                   {energyQuota.remainingPostableKwh.toFixed(1)} kWh
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Producer P2P Payout Bank & UPI Settlement Account Card */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <div className="bg-surface border border-blue-500/30 rounded-2xl p-5 shadow-md relative overflow-hidden bg-gradient-to-r from-surface via-blue-500/5 to-indigo-500/10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-blue-500/10 text-blue-600 border border-blue-500/20 shadow-xs">
+                <Building2 className="w-7 h-7 text-blue-600" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-extrabold text-navy font-heading">
+                    Verified P2P Bank &amp; UPI Payout Account
+                  </h3>
+                  <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-700 rounded-full text-[10px] font-extrabold uppercase border border-emerald-500/20 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Escrow Synced
+                  </span>
+                </div>
+                <p className="text-xs text-text-secondary">
+                  Sale revenues from consumer marketplace purchases are automatically routed to your linked bank account ({bankDetails.bankName || 'HDFC Bank'} {bankDetails.maskedAccount || '•••• 9283'}) or UPI ID.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <div className="px-3.5 py-2 bg-background rounded-xl border border-border text-left text-xs space-y-0.5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[10px] text-text-secondary font-bold uppercase">Beneficiary A/C:</span>
+                  <span className="font-bold text-navy font-mono text-[11px]">{bankDetails.maskedAccount || '•••• •••• 9283'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-[10px] text-text-secondary font-bold uppercase">UPI ID:</span>
+                  <span className="font-extrabold text-emerald-700 font-mono text-[11px]">{bankDetails.upiId || 'producer.solar@okhdfcbank'}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBankModal(true)}
+                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs text-center transition-all shadow-sm"
+              >
+                Edit Payout Account
+              </button>
             </div>
           </div>
         </div>
@@ -603,6 +678,127 @@ export default function ProducerDashboard({ userProfile }) {
               className="flex-1"
             >
               Save Battery Capacity
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Configure P2P Payout Bank & UPI Details Modal */}
+      <Modal
+        isOpen={showBankModal}
+        onClose={() => setShowBankModal(false)}
+        title="Producer Bank & UPI Payout Settings"
+      >
+        <form onSubmit={handleUpdateBankDetails} className="space-y-4 pt-2 text-xs">
+          <div className="p-3.5 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-emerald-500/10 border border-blue-500/20 rounded-xl space-y-1">
+            <div className="flex items-center gap-2 font-bold text-navy">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              <span>Direct Peer-to-Peer Energy Payout Destination</span>
+            </div>
+            <p className="text-text-secondary text-[11px]">
+              When local consumers buy your listed solar power, funds will automatically be transferred and settled directly to your registered bank account or UPI ID via Smart Contract Escrow.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-text-primary mb-1">
+              Account Holder Full Name
+            </label>
+            <Input
+              type="text"
+              placeholder="e.g. Clean Energy Producer"
+              value={bankDetails.accountHolder}
+              onChange={(e) => setBankDetails({ ...bankDetails, accountHolder: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Bank Name
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. HDFC Bank, SBI, ICICI"
+                value={bankDetails.bankName}
+                onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Bank Account Number
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. 50100492819283"
+                value={bankDetails.accountNumber}
+                onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                IFSC Code
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. HDFC0001089"
+                value={bankDetails.ifsc}
+                onChange={(e) => setBankDetails({ ...bankDetails, ifsc: e.target.value.toUpperCase() })}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-text-primary mb-1">
+                Branch / Microgrid Zone
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. Dindigul Microgrid Branch"
+                value={bankDetails.branch}
+                onChange={(e) => setBankDetails({ ...bankDetails, branch: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-text-primary mb-1">
+              UPI ID / VPA (Instant Settlement)
+            </label>
+            <Input
+              type="text"
+              placeholder="e.g. producer.solar@okhdfcbank"
+              value={bankDetails.upiId}
+              onChange={(e) => setBankDetails({ ...bankDetails, upiId: e.target.value })}
+              required
+            />
+            <p className="text-[10px] text-text-secondary mt-1">
+              Supports Google Pay, PhonePe, Paytm, and BHIM instant bank-to-bank settlements.
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowBankModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1"
+            >
+              Save &amp; Sync Payout Details
             </Button>
           </div>
         </form>

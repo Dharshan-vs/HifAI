@@ -4,7 +4,7 @@ import {
   createSmartContractEscrow,
   verifySmartMeterDeliveryAndRelease,
 } from './blockchainService.js';
-import { creditProducerWallet } from './walletService.js';
+import { creditProducerWallet, getUserBankDetails } from './walletService.js';
 
 const LOCAL_TX_KEY = 'hifai_marketplace_transactions';
 const LOCAL_OFFERS_KEY = 'hifai_marketplace_offers';
@@ -424,8 +424,18 @@ export function normalizeTransaction(tx) {
     type: tx.type || 'purchase',
     buyer,
     buyer_name: buyer,
+    buyerId: tx.buyerId || tx.buyer_id || 'guest',
+    buyerEmail: tx.buyerEmail || tx.buyer_email || '',
+    buyerPaymentMethod: tx.buyerPaymentMethod || tx.payment_method || 'Razorpay Gateway (UPI / Card)',
+    buyerUpiOrCard: tx.buyerUpiOrCard || tx.buyer_upi || '',
     seller,
     seller_name: seller,
+    sellerId: tx.sellerId || tx.seller_id || 'PROD-001',
+    sellerBankName: tx.sellerBankName || tx.seller_bank_name || 'HDFC Bank',
+    sellerBankAccount: tx.sellerBankAccount || tx.seller_bank_account || '•••• •••• 9283',
+    sellerIfsc: tx.sellerIfsc || tx.seller_ifsc || 'HDFC0001089',
+    sellerUpiId: tx.sellerUpiId || tx.seller_upi_id || 'producer.solar@okhdfcbank',
+    settlementStatus: tx.settlementStatus || 'Direct Bank/UPI Escrow Settled',
     location: tx.location || tx.seller_location || 'Local Microgrid',
     distance_value: parseFloat(tx.distance_value || 0.5),
     energyAmount: energy,
@@ -440,6 +450,11 @@ export function normalizeTransaction(tx) {
     date: tx.date || tx.created_at || new Date().toISOString(),
     status: tx.status || 'completed',
     currency: tx.currency || '₹',
+    contractAddress: tx.contractAddress || tx.contract_address || '0x71C...b41F',
+    txHash: tx.txHash || tx.blockchain_hash || `0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069`,
+    recTokenId: tx.recTokenId || tx.rec_token_id || 'REC-8921',
+    meterProofHash: tx.meterProofHash || tx.meter_proof_hash,
+    razorpayPaymentId: tx.razorpayPaymentId || tx.razorpay_payment_id,
   };
 }
 
@@ -672,12 +687,22 @@ export async function createEnergyOffer(offerData) {
   const activeCity = (typeof window !== 'undefined' && localStorage.getItem('hifai_user_city')) || offerData.seller_city || 'Dindigul';
   const sellerLocation = offerData.seller_location || `${activeCity} (Local Substation Zone)`;
   const priceVal = parseFloat(offerData.price_per_kwh || 7.20);
+  const sellerId = offerData.seller_id || 'PROD-CURRENT';
+  const sellerName = offerData.seller_name || 'Community Solar Producer';
+
+  // Get Producer's linked bank & UPI payout account
+  const bank = getUserBankDetails(sellerId, sellerName);
 
   const formattedOffer = {
     id: `OFFER-P2P-${Math.floor(100000 + Math.random() * 900000)}`,
-    seller_id: offerData.seller_id || 'PROD-CURRENT',
-    seller_uid: offerData.seller_id || 'PROD-CURRENT',
-    seller_name: offerData.seller_name || 'Community Solar Producer',
+    seller_id: sellerId,
+    seller_uid: sellerId,
+    seller_name: sellerName,
+    seller_bank_name: offerData.seller_bank_name || bank.bankName,
+    seller_bank_account: offerData.seller_bank_account || bank.maskedAccount,
+    seller_ifsc: offerData.seller_ifsc || bank.ifsc,
+    seller_upi_id: offerData.seller_upi_id || bank.upiId,
+    seller_account_holder: offerData.seller_account_holder || bank.accountHolder,
     seller_location: sellerLocation,
     seller_city: activeCity,
     lat: offerData.lat || 10.3673,
@@ -701,12 +726,16 @@ export async function createEnergyOffer(offerData) {
         price_per_kwh: priceVal,
         seller_location: sellerLocation,
         seller_city: activeCity,
+        seller_bank_name: formattedOffer.seller_bank_name,
+        seller_bank_account: formattedOffer.seller_bank_account,
+        seller_ifsc: formattedOffer.seller_ifsc,
+        seller_upi_id: formattedOffer.seller_upi_id,
         lat: offerData.lat || 10.3673,
         lon: offerData.lon || 77.9803,
       }),
     });
     const currentLocal = getLocalOffers();
-    const newOffer = res.offer || formattedOffer;
+    const newOffer = res.offer ? { ...formattedOffer, ...res.offer } : formattedOffer;
     saveLocalOffers([newOffer, ...currentLocal.filter((o) => o.id !== newOffer.id)]);
 
     recordClientAuditLog({
@@ -716,7 +745,7 @@ export async function createEnergyOffer(offerData) {
       transaction_type: 'offer_creation',
       amount: parseFloat((newOffer.energy_kwh * newOffer.price_per_kwh).toFixed(2)),
       status: 'verified',
-      description: `Published offer for ${newOffer.energy_kwh} kWh at ₹${newOffer.price_per_kwh}/kWh in ${newOffer.seller_city || 'Dindigul'}.`,
+      description: `Published offer for ${newOffer.energy_kwh} kWh at ₹${newOffer.price_per_kwh}/kWh in ${newOffer.seller_city || 'Dindigul'}. Linked Payout: ${newOffer.seller_bank_name} (${newOffer.seller_bank_account}) / UPI: ${newOffer.seller_upi_id}.`,
       metadata: newOffer,
     });
 
@@ -818,10 +847,17 @@ export async function purchaseEnergy(
   const totalPrice = parseFloat((basePrice + wheelingCharge).toFixed(2));
   const tradeId = serverRes?.transaction?.id || `TX-P2P-${Math.floor(100000 + Math.random() * 900000)}`;
 
+  const sellerBankName = offerObj?.seller_bank_name || 'HDFC Bank';
+  const sellerBankAccount = offerObj?.seller_bank_account || '•••• •••• 9283';
+  const sellerIfsc = offerObj?.seller_ifsc || 'HDFC0001089';
+  const sellerUpiId = offerObj?.seller_upi_id || 'producer.solar@okhdfcbank';
+  const buyerPaymentMethod = paymentDetails?.paymentMethod || 'Razorpay Gateway (UPI / Card)';
+  const buyerUpiOrCard = paymentDetails?.upiId || paymentDetails?.cardNumber || paymentDetails?.razorpay_payment_id || 'Razorpay Verified';
+
   // 1. Lock payment in Blockchain Smart Contract Escrow
   const escrow = await createSmartContractEscrow({
     tradeId,
-    buyerId: buyerProfile?.uid || 'consumer-001',
+    buyerId: buyerProfile?.uid || buyerProfile?.firebase_uid || buyerProfile?.id || 'consumer-001',
     buyerName,
     sellerId: offerObj?.seller_id || 'PROD-001',
     sellerName,
@@ -831,8 +867,11 @@ export async function purchaseEnergy(
     wheelingCharge,
     lineLossPercent,
     distanceKm: dist,
-    paymentMethod: paymentDetails?.paymentMethod || 'Razorpay Gateway (UPI / Card)',
+    paymentMethod: buyerPaymentMethod,
     razorpayPaymentId: paymentDetails?.razorpay_payment_id || `pay_rzp_${Date.now()}`,
+    sellerBankName,
+    sellerBankAccount,
+    sellerUpiId,
   });
 
   // 2. Simulate Smart Meter IoT Telemetry Verification & Fund Release to Producer
@@ -844,7 +883,7 @@ export async function purchaseEnergy(
     actualDeliveredKwh: energyKwh,
   });
 
-  // 3. Automatically Credit Funds to the Producer's Wallet
+  // 3. Automatically Credit Funds to the Producer's Wallet & Record Linked Bank Settlement
   await creditProducerWallet(offerObj?.seller_id || 'guest', totalPrice, {
     tradeId,
     energyKwh,
@@ -852,6 +891,10 @@ export async function purchaseEnergy(
     sellerName,
     contractAddress: escrow.contractAddress,
     recTokenId: deliverySettlement.recTokenId,
+    paymentMethod: buyerPaymentMethod,
+    sellerBankName,
+    sellerBankAccount,
+    sellerUpiId,
   });
 
   // 4. Create local transaction record with confirmed on-chain details
@@ -865,8 +908,15 @@ export async function purchaseEnergy(
     buyerId,
     buyerEmail,
     buyer: buyerName,
+    buyerPaymentMethod,
+    buyerUpiOrCard,
     sellerId,
     seller: sellerName,
+    sellerBankName,
+    sellerBankAccount,
+    sellerIfsc,
+    sellerUpiId,
+    settlementStatus: 'Direct Bank/UPI Escrow Settled',
     location: sellerLoc,
     distance_value: dist,
     energyAmount: energyKwh,

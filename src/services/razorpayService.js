@@ -74,7 +74,7 @@ export async function initiateRazorpayPayment({
               method: 'POST',
               body: JSON.stringify({
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id || orderId,
+                razorpay_order_id: response.razorpay_order_id || confirmedOrderId || orderData?.order_id || '',
                 razorpay_signature: response.razorpay_signature || `sig_${Date.now()}`,
                 offer_id: offer.id,
                 energy_kwh: energyKwh,
@@ -85,7 +85,7 @@ export async function initiateRazorpayPayment({
             if (onSuccess) {
               onSuccess({
                 razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id || orderId,
+                razorpay_order_id: response.razorpay_order_id || confirmedOrderId || orderData?.order_id || '',
                 paymentMethod: 'Razorpay Gateway (UPI / Card)',
                 ...verifyRes,
               });
@@ -95,7 +95,7 @@ export async function initiateRazorpayPayment({
             if (onSuccess) {
               onSuccess({
                 razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
-                razorpay_order_id: orderId,
+                razorpay_order_id: confirmedOrderId || orderData?.order_id || '',
                 paymentMethod: 'Razorpay Gateway (UPI / Card)',
               });
             }

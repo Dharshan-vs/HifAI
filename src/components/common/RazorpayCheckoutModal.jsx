@@ -149,6 +149,38 @@ export default function RazorpayCheckoutModal({
           </div>
 
           <div className="p-6 space-y-5">
+            {/* Producer Beneficiary & Linked Payout Account Card */}
+            <div className="p-3.5 bg-blue-500/5 border border-blue-500/20 rounded-2xl space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-navy flex items-center gap-1.5 text-[11px]">
+                  <Building2 className="w-3.5 h-3.5 text-blue-600" /> Producer Beneficiary Payout Destination
+                </span>
+                <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-800 rounded-md text-[10px] font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified Account
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] bg-surface p-2.5 rounded-xl border border-border/70">
+                <div>
+                  <span className="text-text-secondary text-[10px] block">Beneficiary Name</span>
+                  <span className="font-bold text-navy truncate block">{offer.seller_name || 'Community Solar Producer'}</span>
+                </div>
+                <div>
+                  <span className="text-text-secondary text-[10px] block">Receiving Bank</span>
+                  <span className="font-mono font-bold text-navy truncate block">
+                    {offer.seller_bank_name || 'HDFC Bank'} •••• {String(offer.seller_bank_account || '9283').slice(-4)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-text-secondary text-[10px] block">IFSC Code</span>
+                  <span className="font-mono text-navy font-semibold block">{offer.seller_ifsc || 'HDFC0001089'}</span>
+                </div>
+                <div>
+                  <span className="text-text-secondary text-[10px] block">Direct UPI ID</span>
+                  <span className="font-mono text-emerald-700 font-extrabold truncate block">{offer.seller_upi_id || 'producer.solar@okhdfcbank'}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Price Breakdown Summary */}
             <div className="p-3.5 bg-background border border-border/80 rounded-2xl space-y-2 text-xs">
               <div className="flex justify-between text-text-secondary">

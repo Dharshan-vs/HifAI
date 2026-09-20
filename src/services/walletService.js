@@ -30,6 +30,53 @@ export const INITIAL_PAYMENTS = [
 
 const LOCAL_WALLET_KEY = 'hifai_registered_wallet_summary';
 const LOCAL_PAYMENTS_KEY = 'hifai_registered_payments';
+const LOCAL_BANK_KEY = 'hifai_registered_bank_details';
+
+export function getUserBankDetails(userId = 'guest', defaultName = 'Solar Energy Producer') {
+  try {
+    const key = `${LOCAL_BANK_KEY}_${userId || 'guest'}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return parsed;
+    }
+  } catch {}
+
+  const holderName = defaultName || 'Solar Energy Producer';
+  const cleanPrefix = (defaultName || 'producer').toLowerCase().replace(/[^a-z0-9]/g, '') || 'producer';
+
+  return {
+    accountHolder: holderName,
+    bankName: 'HDFC Bank',
+    accountNumber: '50100492819283',
+    maskedAccount: '•••• •••• 9283',
+    ifsc: 'HDFC0001089',
+    branch: 'Dindigul Microgrid Branch',
+    upiId: `${cleanPrefix}.solar@okhdfcbank`,
+    accountType: 'Savings / Current',
+    isVerified: true,
+    verifiedAt: new Date().toISOString(),
+  };
+}
+
+export function saveUserBankDetails(userId = 'guest', bankDetails) {
+  try {
+    const key = `${LOCAL_BANK_KEY}_${userId || 'guest'}`;
+    const acct = String(bankDetails.accountNumber || '50100492819283');
+    const updated = {
+      ...bankDetails,
+      accountNumber: acct,
+      maskedAccount: `•••• •••• ${acct.slice(-4)}`,
+      isVerified: true,
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(key, JSON.stringify(updated));
+    return updated;
+  } catch (e) {
+    console.warn('saveUserBankDetails error:', e);
+    return bankDetails;
+  }
+}
 
 export function getLocalWallet(userId = 'guest') {
   try {
