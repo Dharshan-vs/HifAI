@@ -123,6 +123,54 @@ export default function LoginPage() {
             <p className="text-text-secondary">Sign in to your YUGA renewable energy portal</p>
           </div>
 
+          {/* 1-Click Persistent Demo Logins */}
+          <div className="p-3 bg-primary/5 border border-primary/20 rounded-2xl space-y-2">
+            <span className="text-[11px] font-bold text-navy uppercase tracking-wider block">
+              ⚡ Quick Demo Logins (Changes Persist Independently)
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetPortal(USER_ROLES.PRODUCER);
+                  handleQuickDemoLogin('producer');
+                }}
+                disabled={authLoading}
+                className="p-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-xl text-left transition-all group disabled:opacity-50"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                  <Zap className="w-3.5 h-3.5 text-amber-600 shrink-0" /> Producer Demo
+                </div>
+                <span className="text-[10px] text-amber-800/80 block font-mono mt-0.5 truncate">
+                  producer@yuga.energy
+                </span>
+                <span className="text-[9px] text-amber-700 block font-medium mt-0.5">
+                  Sell power, battery & escrow
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetPortal(USER_ROLES.CONSUMER);
+                  handleQuickDemoLogin('consumer');
+                }}
+                disabled={authLoading}
+                className="p-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-left transition-all group disabled:opacity-50"
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                  <Home className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> Consumer Demo
+                </div>
+                <span className="text-[10px] text-emerald-800/80 block font-mono mt-0.5 truncate">
+                  consumer@yuga.energy
+                </span>
+                <span className="text-[9px] text-emerald-700 block font-medium mt-0.5">
+                  Smart meter & buy energy
+                </span>
+              </button>
+            </div>
+          </div>
+
           {/* Portal Focus Selection */}
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider">

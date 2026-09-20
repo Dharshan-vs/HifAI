@@ -207,24 +207,38 @@ export async function loginUser(email, password, role) {
       const finalRole = existingRole || role || 'consumer';
       saveEmailRegisteredRole(cleanEmail, finalRole);
 
-      const name = email ? email.split('@')[0].replace(/[._]/g, ' ') : 'Demo User';
-      const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+      const isProducerAccount = cleanEmail.includes('producer') || finalRole === 'producer';
+      const defaultName = isProducerAccount ? 'Solar Energy Producer' : 'Household Energy Consumer';
+      const cleanUid = 'demo_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+
       const demoUser = {
-        uid: 'demo_' + ((email || 'user').replace(/[^a-zA-Z0-9]/g, '_')),
-        email: email || 'demo@yuga.energy',
-        displayName: formattedName,
+        uid: cleanUid,
+        email: cleanEmail,
+        displayName: defaultName,
         emailVerified: true,
         getIdToken: async () => 'demo-token',
       };
-      const demoProfile = {
-        id: 1,
-        firebase_uid: demoUser.uid,
-        name: formattedName,
-        email: email || 'demo@yuga.energy',
-        phone: '+1 555-0199',
+
+      // Retrieve any previous per-user saved profile changes
+      let existingProfile = null;
+      try {
+        const saved = localStorage.getItem(`yuga_user_profile_${cleanUid}`);
+        if (saved) existingProfile = JSON.parse(saved);
+      } catch {}
+
+      const demoProfile = existingProfile || {
+        id: isProducerAccount ? 101 : 102,
+        firebase_uid: cleanUid,
+        name: defaultName,
+        email: cleanEmail,
+        phone: isProducerAccount ? '+91 98765 43210' : '+91 91234 56789',
         role: finalRole,
         profile_image: '',
       };
+
+      localStorage.setItem('yuga_active_user', JSON.stringify(demoUser));
+      localStorage.setItem('yuga_user_profile', JSON.stringify(demoProfile));
+      localStorage.setItem(`yuga_user_profile_${cleanUid}`, JSON.stringify(demoProfile));
       localStorage.setItem('yuga_demo_user', JSON.stringify(demoUser));
       localStorage.setItem('yuga_demo_profile', JSON.stringify(demoProfile));
       return { user: demoUser, userProfile: demoProfile, mfaRequired: false };
@@ -259,10 +273,18 @@ export async function resetPassword(email) {
 
 export function getCurrentUser() {
   if (auth.currentUser) return auth.currentUser;
-  const saved = localStorage.getItem('yuga_demo_user');
-  if (saved) {
+  const savedActive = localStorage.getItem('yuga_active_user');
+  if (savedActive) {
     try {
-      const parsed = JSON.parse(saved);
+      const parsed = JSON.parse(savedActive);
+      parsed.getIdToken = async () => 'active-token';
+      return parsed;
+    } catch {}
+  }
+  const savedDemo = localStorage.getItem('yuga_demo_user');
+  if (savedDemo) {
+    try {
+      const parsed = JSON.parse(savedDemo);
       parsed.getIdToken = async () => 'demo-token';
       return parsed;
     } catch {
@@ -283,20 +305,34 @@ export async function reloadCurrentUser() {
 export async function getUserProfile(uid) {
   try {
     const res = await fetchWithAuth('/user/profile');
-    return res.profile;
-  } catch (err) {
-    const saved = localStorage.getItem('yuga_demo_profile');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
+    if (res?.profile) {
+      if (uid) localStorage.setItem(`yuga_user_profile_${uid}`, JSON.stringify(res.profile));
+      return res.profile;
     }
-    const current = getCurrentUser();
-    if (current) {
-      return await ensureUserProfile(current);
-    }
-    return null;
+  } catch {}
+
+  // Check per-user local storage
+  if (uid) {
+    try {
+      const perUserSaved = localStorage.getItem(`yuga_user_profile_${uid}`);
+      if (perUserSaved) {
+        return JSON.parse(perUserSaved);
+      }
+    } catch {}
   }
+
+  const saved = localStorage.getItem('yuga_user_profile') || localStorage.getItem('yuga_demo_profile');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {}
+  }
+
+  const current = getCurrentUser();
+  if (current) {
+    return await ensureUserProfile(current);
+  }
+  return null;
 }
 
 export async function updateUserProfile(uid, data) {
