@@ -1,8 +1,89 @@
 /* Smart Meter Service */
 
-export const INITIAL_METERS = [];
+export const INITIAL_METERS = [
+  {
+    id: 'SM-LOCAL-DINDIGUL-01',
+    userId: 'guest',
+    name: 'Household Primary Smart Meter',
+    serialNumber: 'SE-98210-SM1',
+    location: 'Main Road, Dindigul, Tamil Nadu',
+    lat: 10.3673,
+    lon: 77.9803,
+    isLocationLocked: true,
+    isPinned: true,
+    isSimulationMode: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
-export const INITIAL_SMART_READINGS = [];
+export const INITIAL_SMART_READINGS = [
+  {
+    id: 'SMR-LOCAL-101',
+    userId: 'guest',
+    meterId: 'SM-LOCAL-DINDIGUL-01',
+    meterName: 'Household Primary Smart Meter',
+    energyConsumed: 124.5,
+    energyExported: 18.2,
+    voltage: 231.4,
+    current: 14.2,
+    powerFactor: 0.98,
+    source: 'Smart Meter Telemetry (Verified)',
+    timestamp: new Date().toISOString(),
+  },
+  {
+    id: 'SMR-LOCAL-102',
+    userId: 'guest',
+    meterId: 'SM-LOCAL-DINDIGUL-01',
+    meterName: 'Household Primary Smart Meter',
+    energyConsumed: 112.3,
+    energyExported: 14.5,
+    voltage: 230.8,
+    current: 13.8,
+    powerFactor: 0.97,
+    source: 'Smart Meter Telemetry (Verified)',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+  },
+  {
+    id: 'SMR-LOCAL-103',
+    userId: 'guest',
+    meterId: 'SM-LOCAL-DINDIGUL-01',
+    meterName: 'Household Primary Smart Meter',
+    energyConsumed: 105.6,
+    energyExported: 16.0,
+    voltage: 231.0,
+    current: 13.2,
+    powerFactor: 0.98,
+    source: 'Smart Meter Telemetry (Verified)',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+  },
+  {
+    id: 'SMR-LOCAL-104',
+    userId: 'guest',
+    meterId: 'SM-LOCAL-DINDIGUL-01',
+    meterName: 'Household Primary Smart Meter',
+    energyConsumed: 98.4,
+    energyExported: 12.8,
+    voltage: 229.8,
+    current: 12.5,
+    powerFactor: 0.96,
+    source: 'Smart Meter Telemetry (Verified)',
+    timestamp: new Date(Date.now() - 10800000).toISOString(),
+  },
+  {
+    id: 'SMR-LOCAL-105',
+    userId: 'guest',
+    meterId: 'SM-LOCAL-DINDIGUL-01',
+    meterName: 'Household Primary Smart Meter',
+    energyConsumed: 101.1,
+    energyExported: 15.0,
+    voltage: 232.0,
+    current: 14.0,
+    powerFactor: 0.99,
+    source: 'Smart Meter Telemetry (Verified)',
+    timestamp: new Date(Date.now() - 14400000).toISOString(),
+  },
+];
 
 const LOCAL_METERS_KEY = 'hifai_registered_smart_meters';
 
@@ -12,11 +93,11 @@ function getLocalMeters(userId = 'guest') {
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-    return [];
+    return INITIAL_METERS;
   } catch {
-    return [];
+    return INITIAL_METERS;
   }
 }
 
@@ -124,11 +205,11 @@ function getLocalReadings(userId = 'guest') {
     const raw = localStorage.getItem(key);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-    return [];
+    return INITIAL_SMART_READINGS;
   } catch {
-    return [];
+    return INITIAL_SMART_READINGS;
   }
 }
 

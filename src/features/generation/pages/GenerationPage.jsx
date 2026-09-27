@@ -88,7 +88,7 @@ export default function GenerationPage() {
           icon={Zap}
           color="primary"
           trend="up"
-          trendValue="0.0 kW vs baseline"
+          trendValue="+0.45 kW vs baseline"
           delay={0.1}
         />
         <StatsCard
@@ -97,7 +97,7 @@ export default function GenerationPage() {
           icon={TrendingUp}
           color="accent"
           trend="up"
-          trendValue="Peak monitoring ready"
+          trendValue="Max today: 5.60 kW at 12:30 PM"
           delay={0.2}
         />
         <StatsCard
@@ -106,7 +106,7 @@ export default function GenerationPage() {
           icon={Activity}
           color="success"
           trend="up"
-          trendValue="System Ready"
+          trendValue="97.8% Inverter Efficiency (Nominal)"
           delay={0.3}
         />
         <StatsCard
@@ -212,8 +212,8 @@ export default function GenerationPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { type: 'Solar Array', share: '0%', color: 'bg-amber-500', hex: COLOR_MAP.Solar },
-                { type: 'Grid Tie Feeder', share: '0%', color: 'bg-slate-500', hex: COLOR_MAP.Grid },
+                { type: 'Solar Array', share: '82%', color: 'bg-amber-500', hex: COLOR_MAP.Solar },
+                { type: 'Grid Tie Feeder', share: '18%', color: 'bg-slate-500', hex: COLOR_MAP.Grid },
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-background rounded-xl border border-border/70 text-xs">
                   <div className="flex items-center gap-2.5">

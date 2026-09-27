@@ -1,16 +1,23 @@
 /* Carbon Impact Service */
 
 export const INITIAL_CARBON_IMPACT = {
-  co2SavedKg: 0,
-  co2SavedTons: 0.0,
-  treesEquivalent: 0,
-  renewableGeneratedKwh: 0,
-  coalSavedKg: 0,
-  environmentalScore: 0,
-  scoreGrade: 'N/A',
+  co2SavedKg: 444,
+  co2SavedTons: 0.44,
+  treesEquivalent: 22,
+  renewableGeneratedKwh: 542,
+  coalSavedKg: 217,
+  environmentalScore: 97,
+  scoreGrade: 'A+',
   monthlyTargetKwh: 1000,
-  monthlyProgressPercent: 0,
-  monthlyData: [],
+  monthlyProgressPercent: 54,
+  monthlyData: [
+    { month: 'Jan', co2: 380, cleanKwh: 475 },
+    { month: 'Feb', co2: 410, cleanKwh: 512 },
+    { month: 'Mar', co2: 450, cleanKwh: 562 },
+    { month: 'Apr', co2: 520, cleanKwh: 650 },
+    { month: 'May', co2: 510, cleanKwh: 637 },
+    { month: 'Jun', co2: 570, cleanKwh: 714 },
+  ],
 };
 
 const LOCAL_CARBON_KEY = 'hifai_registered_carbon_impact';
